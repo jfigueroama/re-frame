@@ -1,4 +1,4 @@
-(ns re-frame.registrar
+(ns re-frame-lib.registrar
   "In many places, re-frame asks you to associate an `id` (keyword)
   with a `handler` (function).  This namespace contains the
   central registry of such associations."
@@ -14,44 +14,67 @@
 ;; Leaf nodes are handlers.
 ;(def kind->id->handler  (atom {}))
 
+(defn new-state
+  [state]
+  (merge state {:kind->id->handler (atom {})}))
+
+(defn state?
+  "Checks if the state has the :kind->id->handler in order to be a valid
+  state."
+  [state]
+  (contains? state :kind->id->handler))
 
 (defn get-handler
 
   ([state kind]
-   (get @(:kind->id->handler state) kind))
+   {:pre [(state? state)]}
+   (let [kind->id->handler (:kind->id->handler state)]
+     (get @kind->id->handler kind)))
 
   ([state kind id]
-   (-> (get @(:kind->id->handler state) kind)
-       (get id)))
+   {:pre [(state? state)]}
+   (let [kind->id->handler (:kind->id->handler state)]
+     (-> (get @kind->id->handler kind)
+         (get id))))
 
   ([state kind id required?]
-   (let [handler (get-handler state kind id)]
-     (when (:debug-enabled? state)                 ;; This is in a separate `when` so Closure DCE can run ...
+   {:pre [(state? state)]}
+   (let [kind->id->handler (:kind->id->handler state)
+         handler (get-handler state kind id)]
+     (when debug-enabled?                          ;; This is in a separate `when` so Closure DCE can run ...
        (when (and required? (nil? handler))        ;; ...otherwise you'd need to type-hint the `and` with a ^boolean for DCE.
-         (console state :error "re-frame: no " (str kind) " handler registered for: " id)))
+         (console :error "re-frame: no " (str kind) " handler registered for: " id)))
      handler)))
 
 
 (defn register-handler
   [state kind id handler-fn]
-  (when (:debug-enabled? state) ;; This is in a separate when so Closure DCE can run
-    (when (get-handler state kind id false)
-      (console state :warn "re-frame: overwriting" (str kind) "handler for:" id)))   ;; allow it, but warn. Happens on figwheel reloads.
-  (swap! (:kind->id->handler state) assoc-in [kind id] handler-fn)
-  handler-fn)    ;; note: returns the just registered handler
+  {:pre [(state? state)]}
+  (let [kind->id->handler (:kind->id->handler state)]
+    (when debug-enabled?                                       ;; This is in a separate when so Closure DCE can run
+      (when (get-handler state kind id false)
+        (console :warn "re-frame: overwriting" (str kind) "handler for:" id)))   ;; allow it, but warn. Happens on figwheel reloads.
+    (swap! kind->id->handler assoc-in [kind id] handler-fn)
+    handler-fn))    ;; note: returns the just registered handler
 
 
 (defn clear-handlers
-  ([state ]            ;; clear all kinds
-   (reset! (:kind->id->handler state) {}))
+  ([state]            ;; clear all kinds
+   {:pre [(state? state)]}
+   (let [kind->id->handler (:kind->id->handler state)]
+     (reset! kind->id->handler {})))
 
   ([state kind]        ;; clear all handlers for this kind
-   (assert (kinds kind))
-   (swap! (:kind->id->handler state) dissoc kind))
+   {:pre [(state? state)]}
+   (let [kind->id->handler (:kind->id->handler state)]
+     (assert (kinds kind))
+     (swap! kind->id->handler dissoc kind)))
 
   ([state kind id]     ;; clear a single handler for a kind
-   (assert (kinds kind))
-   (if (get-handler state kind id)
-     (swap! (:kind->id->handler state) update-in [kind] dissoc id)
-     (console state :warn "re-frame: can't clear" (str kind) "handler for" (str id ". Handler not found.")))))
+   {:pre [(state? state)]}
+   (let [kind->id->handler (:kind->id->handler state)]
+     (assert (kinds kind))
+     (if (get-handler state kind id)
+       (swap! kind->id->handler update-in [kind] dissoc id)
+       (console :warn "re-frame: can't clear" (str kind) "handler for" (str id ". Handler not found."))))))
 

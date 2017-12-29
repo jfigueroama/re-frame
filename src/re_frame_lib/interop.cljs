@@ -3,17 +3,36 @@
             [reagent.core]
             [reagent.ratom]))
 
-(def next-tick goog.async.nextTick)
+(def ^boolean -debug-enabled? "@define {boolean}" ^boolean js/goog.DEBUG)
+
+(defn new-state
+  [state]
+  (merge state {:executor nil
+                :on-dispose-callbacks nil
+                :debug-enabled? -debug-enabled?}))
+
+(defn state?
+  [state]
+  (and (contains? state :executor) (contains? state :on-dispose-callbacks)))
+
+
+(defn next-tick
+  [state f]
+  {:pre [(state? state)]}
+  (goog.async.nextTick f))
 
 (def empty-queue #queue [])
 
-(def after-render reagent.core/after-render)
+(defn after-render
+  [state f]
+  {:pre [(state? state)]}
+  (reagent.core/after-render f))
 
 ;; Make sure the Google Closure compiler sees this as a boolean constant,
 ;; otherwise Dead Code Elimination won't happen in `:advanced` builds.
 ;; Type hints have been liberally sprinkled.
 ;; https://developers.google.com/closure/compiler/docs/js-for-compiler
-(def ^boolean debug-enabled? "@define {boolean}" ^boolean js/goog.DEBUG)
+
 
 (defn ratom [x]
   (reagent.core/atom x))
@@ -28,17 +47,22 @@
 (defn make-reaction [f]
   (reagent.ratom/make-reaction f))
 
-(defn add-on-dispose! [a-ratom f]
+(defn add-on-dispose!
+  [state a-ratom f]
+  {:pre [(state? state)]}
   (reagent.ratom/add-on-dispose! a-ratom f))
 
-(defn dispose! [a-ratom]
-	(reagent.ratom/dispose! a-ratom))
+(defn dispose!
+  [state a-ratom]
+  {:pre [(state? state)]}
+  (reagent.ratom/dispose! a-ratom))
 
-(defn set-timeout! [f ms]
-  (js/setTimeout f ms))
+(defn set-timeout! [state f ms] {:pre [(state? state)]} (js/setTimeout f ms))
 
 (defn now []
-  (if (exists? js/performance.now)
+  (if (and
+       (exists? js/performance)
+       (exists? js/performance.now))
     (js/performance.now)
     (js/Date.now)))
 
@@ -54,22 +78,3 @@
            reagent.ratom/Track "tr"
            "other")
          (hash reactive-val))))
-
-; FIX move this to other place
-(defn new-state
-  []
-  {
-   :app-db (ratom {})
-   :debug-enabled? false
-   :kind->id->handler (atom {})
-   :event-queue (->EventQueue :idle empty-queue {})  ; FIX cyclic dependency
-   :*handling* (atom nil)
-   :loggers (atom {:log       (js/console.log.bind   js/console)
-                  :warn      (js/console.warn.bind  js/console)
-                  :error     (js/console.error.bind js/console)
-                  :group     (if (.-group js/console)         ;; console.group does not exist  < IE 11
-                               (js/console.group.bind js/console)
-                               (js/console.log.bind   js/console))
-                  :groupEnd  (if (.-groupEnd js/console)        ;; console.groupEnd does not exist  < IE 11
-                               (js/console.groupEnd.bind js/console)
-                               #())})})

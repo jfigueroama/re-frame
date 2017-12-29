@@ -15,24 +15,20 @@
   "`interceptors` might have nested collections, and contain nil elements.
   return a flat collection, with all nils removed.
   This function is 9/10 about giving good error messages."
-  [state id interceptors]
+  [id interceptors]
   (let [make-chain  #(->> % flatten (remove nil?))]
-    (if-not (:debug-enabled? state)
+    (if-not debug-enabled?
       (make-chain interceptors)
       (do    ;; do a whole lot of development time checks
         (when-not (coll? interceptors)
-          (console state
-                   :error
-                   "re-frame: when registering " id ", expected a collection of interceptors, got: " interceptors))
+          (console :error "re-frame: when registering " id ", expected a collection of interceptors, got: " interceptors))
         (let [chain (make-chain interceptors)]
           (when (empty? chain)
-            (console state
-                     :error
-                     "re-frame: when registering " id ", given an empty interceptor chain"))
+            (console :error "re-frame: when registering " id ", given an empty interceptor chain"))
           (when-let [not-i (first (remove interceptor/interceptor? chain))]
             (if (fn? not-i)
-              (console state :error "re-frame: when registering " id ", got a function instead of an interceptor. Did you provide old style middleware by mistake? Got: " not-i)
-              (console state :error "re-frame: when registering " id ", expected interceptors, but got: " not-i)))
+              (console :error "re-frame: when registering " id ", got a function instead of an interceptor. Did you provide old style middleware by mistake? Got: " not-i)
+              (console :error "re-frame: when registering " id ", expected interceptors, but got: " not-i)))
           chain)))))
 
 
@@ -45,29 +41,23 @@
 
    Typically, an `event handler` will be at the end of the chain (wrapped
    in an interceptor)."
-  [state id interceptors]
-  (register-handler state kind id (flatten-and-remove-nils
-                                    state id interceptors)))
+  [id interceptors]
+  (register-handler kind id (flatten-and-remove-nils id interceptors)))
 
 
 
 ;; -- handle event --------------------------------------------------------------------------------
 
-;(def ^:dynamic *handling* nil)    ;; remember what event we are currently handling
+(def ^:dynamic *handling* nil)    ;; remember what event we are currently handling
 
 (defn handle
   "Given an event vector `event-v`, look up the associated interceptor chain, and execute it."
-  [state event-v]
+  [event-v]
   (let [event-id  (first-in-vector event-v)]
-    (if-let [interceptors  (get-handler state kind event-id true)]
-      (if @(:*handling* state)
-        (console state :error
-                 "re-frame: while handling \""
-                 @(:*handling* state)
-                 "\", dispatch-sync was called for \""
-                 event-v
-                 "\". You can't call dispatch-sync within an event handler.")
-        (binding [*handling* event-v] ;; FIX *handling now is an atom*
+    (if-let [interceptors  (get-handler kind event-id true)]
+      (if *handling*
+        (console :error "re-frame: while handling \"" *handling* "\", dispatch-sync was called for \"" event-v "\". You can't call dispatch-sync within an event handler.")
+        (binding [*handling*  event-v]
           (trace/with-trace {:operation event-id
                              :op-type   kind
                              :tags      {:event event-v}}

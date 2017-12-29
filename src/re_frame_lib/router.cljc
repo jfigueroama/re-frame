@@ -4,9 +4,6 @@
             [re-frame.loggers :refer [console]]
             [re-frame.trace   :as trace :include-macros true]))
 
-; Started 20171201
-; Ended   
-; Tested? 
 
 ;; -- Router Loop ------------------------------------------------------------
 ;;
@@ -94,8 +91,7 @@
 
 
 ;; Concrete implementation of IEventQueue
-(deftype EventQueue [state
-                     #?(:cljs ^:mutable fsm-state               :clj ^:volatile-mutable fsm-state)
+(deftype EventQueue [#?(:cljs ^:mutable fsm-state               :clj ^:volatile-mutable fsm-state)
                      #?(:cljs ^:mutable queue                   :clj ^:volatile-mutable queue)
                      #?(:cljs ^:mutable post-event-callback-fns :clj ^:volatile-mutable post-event-callback-fns)]
   IEventQueue
@@ -108,13 +104,13 @@
   ;; register a callback function which will be called after each event is processed
   (add-post-event-callback [_ id callback-fn]
     (if (contains? post-event-callback-fns id)
-      (console state :warn "re-frame: overwriting existing post event call back with id:" id))
+      (console :warn "re-frame: overwriting existing post event call back with id:" id))
     (->> (assoc post-event-callback-fns id callback-fn)
          (set! post-event-callback-fns)))
 
   (remove-post-event-callback [_ id]
     (if-not (contains? post-event-callback-fns id)
-      (console state :warn "re-frame: could not remove post event call back with id:" id)
+      (console :warn "re-frame: could not remove post event call back with id:" id)
       (->> (dissoc post-event-callback-fns id)
            (set! post-event-callback-fns))))
 
@@ -179,7 +175,7 @@
     [this]
     (let [event-v (peek queue)]
       (try
-        (handle state event-v)
+        (handle event-v)
         (set! queue (pop queue))
         (-call-post-event-callbacks this event-v)
         (catch #?(:cljs :default :clj Exception) ex
@@ -226,7 +222,7 @@
 ;; When "dispatch" is called, the event is added into this event queue.  Later,
 ;;  the queue will "run" and the event will be "handled" by the registered function.
 ;;
-;(def event-queue (->EventQueue :idle empty-queue {}))
+(def event-queue (->EventQueue :idle empty-queue {}))
 
 
 ;; ---------------------------------------------------------------------------
@@ -244,11 +240,11 @@
 
   Usage:
      (dispatch [:order-pizza {:supreme 2 :meatlovers 1 :veg 1})"
-  [state event]
+  [event]
   (if (nil? event)
       (throw (ex-info "re-frame: you called \"dispatch\" without an event vector." {}))
-      (push (:event-queue state) event))
-  state)                                           ;; Ensure 'state' return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False
+      (push event-queue event))
+  nil)                                           ;; Ensure nil return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False
 
 
 (defn dispatch-sync
@@ -264,7 +260,7 @@
 
   Usage:
      (dispatch-sync [:sing :falsetto 634])"
-  [state event-v]
-  (handle state event-v)
-  (-call-post-event-callbacks (:event-queue state) event-v)  ;; slightly ugly hack. Run the registered post event callbacks.
-  state)                                              ;; Ensure state return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False
+  [event-v]
+  (handle event-v)
+  (-call-post-event-callbacks event-queue event-v)  ;; slightly ugly hack. Run the registered post event callbacks.
+  nil)                                              ;; Ensure nil return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False
