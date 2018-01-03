@@ -2,8 +2,9 @@
   "In many places, re-frame asks you to associate an `id` (keyword)
   with a `handler` (function).  This namespace contains the
   central registry of such associations."
-  (:require  [re-frame.interop :refer [debug-enabled?]]
-             [re-frame.loggers :refer [console]]))
+  (:require  [re-frame-lib.base :refer [state?]]
+             [re-frame-lib.interop :refer [state? debug-enabled?]]
+             [re-frame-lib.loggers :refer [console]]))
 
 
 ;; kinds of handlers
@@ -12,20 +13,8 @@
 ;; This atom contains a register of all handlers.
 ;; Contains a two layer map, keyed first by `kind` (of handler), and then `id` of handler.
 ;; Leaf nodes are handlers.
-;(def kind->id->handler  (atom {}))
-
-(defn new-state
-  [state]
-  (merge state {:kind->id->handler (atom {})}))
-
-(defn state?
-  "Checks if the state has the :kind->id->handler in order to be a valid
-  state."
-  [state]
-  (contains? state :kind->id->handler))
 
 (defn get-handler
-
   ([state kind]
    {:pre [(state? state)]}
    (let [kind->id->handler (:kind->id->handler state)]

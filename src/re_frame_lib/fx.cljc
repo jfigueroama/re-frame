@@ -1,18 +1,18 @@
-(ns re-frame.fx
+(ns re-frame-lib.fx
   (:require
-    [re-frame.router      :as router]
-    [re-frame.db          :refer [app-db]]
-    [re-frame.interceptor :refer [->interceptor]]
-    [re-frame.interop     :refer [set-timeout!]]
-    [re-frame.events      :as events]
-    [re-frame.registrar   :refer [get-handler clear-handlers register-handler]]
-    [re-frame.loggers     :refer [console]]))
+    [re-frame-lib.router      :as router]
+    [re-frame-lib.db          :refer [app-db]]
+    [re-frame-lib.interceptor :refer [->interceptor]]
+    [re-frame-lib.interop     :refer [set-timeout!]]
+    [re-frame-lib.events      :as events]
+    [re-frame-lib.registrar   :refer [get-handler clear-handlers register-handler]]
+    [re-frame-lib.loggers     :refer [console]]))
 
 
 ;; -- Registration ------------------------------------------------------------
 
 (def kind :fx)
-(assert (re-frame.registrar/kinds kind))
+(assert (re-frame-lib.registrar/kinds kind))
 
 (defn reg-fx
   "Register the given effect `handler` for the given `id`.

@@ -1,14 +1,14 @@
-(ns re-frame.subs
+(ns re-frame-lib.subs
  (:require
-   [re-frame.db        :refer [app-db]]
-   [re-frame.interop   :refer [add-on-dispose! debug-enabled? make-reaction ratom? deref? dispose! reagent-id ratom]]
-   [re-frame.loggers   :refer [console]]
-   [re-frame.utils     :refer [first-in-vector]]
-   [re-frame.registrar :refer [get-handler clear-handlers register-handler]]
-   [re-frame.trace     :as trace :include-macros true]))
+   [re-frame-lib.db        :refer [app-db]]
+   [re-frame-lib.interop   :refer [add-on-dispose! debug-enabled? make-reaction ratom? deref? dispose! reagent-id ratom]]
+   [re-frame-lib.loggers   :refer [console]]
+   [re-frame-lib.utils     :refer [first-in-vector]]
+   [re-frame-lib.registrar :refer [get-handler clear-handlers register-handler]]
+   [re-frame-lib.trace     :as trace :include-macros true]))
 
 (def kind :sub)
-(assert (re-frame.registrar/kinds kind))
+(assert (re-frame-lib.registrar/kinds kind))
 
 ;; -- cache -------------------------------------------------------------------
 ;;
@@ -103,7 +103,7 @@
   When used in a view function BE SURE to `deref` the returned value.
   In fact, to avoid any mistakes, some prefer to define:
 
-     (def <sub  (comp deref re-frame.core/subscribe))
+     (def <sub  (comp deref re-frame-lib.core/subscribe))
 
   And then, within their views, they call  `(<sub [:items :small])` rather
   than using `subscribe` directly.

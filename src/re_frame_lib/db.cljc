@@ -1,5 +1,5 @@
-(ns re-frame.db
-  (:require [re-frame.interop :refer [ratom]]))
+(ns re-frame-lib.db
+  (:require [re-frame-lib.interop :refer [ratom]]))
 
 
 ;; -- Application State  --------------------------------------------------------------------------

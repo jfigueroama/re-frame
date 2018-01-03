@@ -1,16 +1,17 @@
-(ns re-frame.core
+(ns re-frame-lib.core
   (:require
-    [re-frame.events           :as events]
-    [re-frame.subs             :as subs]
-    [re-frame.interop          :as interop]
-    [re-frame.db               :as db]
-    [re-frame.fx               :as fx]
-    [re-frame.cofx             :as cofx]
-    [re-frame.router           :as router]
-    [re-frame.loggers          :as loggers]
-    [re-frame.registrar        :as registrar]
-    [re-frame.interceptor      :as interceptor]
-    [re-frame.std-interceptors :as std-interceptors :refer [db-handler->interceptor
+    [re-frame-lib.base             :as base :refer [state?]]
+    [re-frame-lib.events           :as events]
+    [re-frame-lib.subs             :as subs]
+    [re-frame-lib.interop          :as interop :refer [ratom]]
+    [re-frame-lib.db               :as db]
+    [re-frame-lib.fx               :as fx]
+    [re-frame-lib.cofx             :as cofx]
+    [re-frame-lib.router           :as router]
+    [re-frame-lib.loggers          :as loggers]
+    [re-frame-lib.registrar        :as registrar]
+    [re-frame-lib.interceptor      :as interceptor]
+    [re-frame-lib.std-interceptors :as std-interceptors :refer [db-handler->interceptor
                                                              fx-handler->interceptor
                                                              ctx-handler->interceptor]]
     [clojure.set               :as set]))
@@ -153,7 +154,7 @@
 ;; but you can override with your own fns (set or subset).
 ;; Example Usage:
 ;;   (defn my-fn [& args]  (post-it-somewhere (apply str args)))  ;; here is my alternative
-;;   (re-frame.core/set-loggers!  {:warn my-fn :log my-fn})       ;; override the defaults with mine
+;;   (re-frame-lib.core/set-loggers!  {:warn my-fn :log my-fn})       ;; override the defaults with mine
 (def set-loggers! loggers/set-loggers!)
 
 ;; If you are writing an extension to re-frame, like perhaps
@@ -194,7 +195,7 @@
 (defn purge-event-queue
   "Remove all events queued for processing"
   []
-  (router/purge re-frame.router/event-queue))
+  (router/purge re-frame-lib.router/event-queue))
 
 ;; -- Event Processing Callbacks  ---------------------------------------------
 
@@ -216,12 +217,12 @@
   ([f]
    (add-post-event-callback f f))   ;; use f as its own identifier
   ([id f]
-   (router/add-post-event-callback re-frame.router/event-queue id f)))
+   (router/add-post-event-callback re-frame-lib.router/event-queue id f)))
 
 
 (defn remove-post-event-callback
   [id]
-  (router/remove-post-event-callback re-frame.router/event-queue id))
+  (router/remove-post-event-callback re-frame-lib.router/event-queue id))
 
 
 ;; --  Deprecation ------------------------------------------------------------
@@ -235,3 +236,34 @@
   [& args]
   (console :warn  "re-frame:  \"register-sub\" is deprecated. Use \"reg-sub-raw\" (look for registration of " (str (first args)) ")")
   (apply reg-sub-raw args))
+
+;; STATE
+
+(defn new-state
+  []
+  {:app-db  (ratom {})
+   :query->reaction (ratom {})
+   :debug-enabled? false
+   :kind->id->handler (atom {})
+   :event-queue (->EventQueue :idle empty-queue {}) ; FIX cyclic dependency
+   :*handling* (atom nil)
+   :trace-id nil
+   :trace-current-trace nil
+   :trace-enabled? false
+   :loggers (atom {:log      (partial interop/log :info)
+                   :warn     (partial interop/log :warn)
+                   :error    (partial interop/log :error)
+                   :group    (partial interop/log :info)
+                   :groupEnd  #()})})
+
+(def new-state-wo-event-queue
+  []
+  {:app-db (ratom {})
+   :query->reaction (ratom {})
+   :kind->id->handler (atom {})})
+
+
+(defn new-state
+  []
+  (let [state (new-state-wo-event-queue)]
+    (router/->EventQueue state :idle router/empty-queue {})))

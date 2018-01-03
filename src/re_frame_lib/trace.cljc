@@ -1,10 +1,10 @@
-(ns re-frame.trace
-  "Tracing for re-frame.
+(ns re-frame-lib.trace
+  "Tracing for re-frame-lib.
   Alpha quality, subject to change/break at any time."
   #?(:cljs (:require-macros [net.cgrand.macrovich :as macros]
-                            [re-frame.trace :refer [finish-trace with-trace merge-trace!]]))
-  (:require [re-frame.interop :as interop]
-            [re-frame.loggers :refer [console]]
+                            [re-frame-lib.trace :refer [finish-trace with-trace merge-trace!]]))
+  (:require [re-frame-lib.interop :as interop]
+            [re-frame-lib.loggers :refer [console]]
             #?(:clj [net.cgrand.macrovich :as macros])
             #?(:cljs [goog.functions])))
 

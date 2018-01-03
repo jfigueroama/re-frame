@@ -1,13 +1,13 @@
-(ns re-frame.std-interceptors
+(ns re-frame-lib.std-interceptors
   "contains re-frame supplied, standard interceptors"
   (:require
-    [re-frame.interceptor :refer [->interceptor get-effect get-coeffect assoc-coeffect assoc-effect]]
-    [re-frame.loggers :refer [console]]
-    [re-frame.registrar :as registrar]
-    [re-frame.db :refer [app-db]]
+    [re-frame-lib.interceptor :refer [->interceptor get-effect get-coeffect assoc-coeffect assoc-effect]]
+    [re-frame-lib.loggers :refer [console]]
+    [re-frame-lib.registrar :as registrar]
+    [re-frame-lib.db :refer [app-db]]
     [clojure.data :as data]
-    [re-frame.cofx :as cofx]
-    [re-frame.utils :as utils]))
+    [re-frame-lib.cofx :as cofx]
+    [re-frame-lib.utils :as utils]))
 
 
 (def debug
@@ -28,9 +28,9 @@
   can be slow. So, you won't want this interceptor present in production
   code. So condition it out like this :
 
-    (re-frame.core/reg-event-db
+    (re-frame-lib.core/reg-event-db
        :evt-id
-       [(when ^boolean goog.DEBUG re-frame.core/debug)]  ;; <-- conditional
+       [(when ^boolean goog.DEBUG re-frame-lib.core/debug)]  ;; <-- conditional
        (fn [db v]
          ...))
 

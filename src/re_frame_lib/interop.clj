@@ -1,6 +1,5 @@
-(ns re-frame.interop
+(ns re-frame-lib.interop
   (:import [java.util.concurrent Executor Executors]))
-
 
 ;; The purpose of this file is to provide JVM-runnable implementations of the
 ;; CLJS equivalents in interop.cljs.
@@ -21,25 +20,20 @@
 ;; allow you to write some useful tests that can run on the JVM.
 
 
-(defn new-state
-  [state]
-  (merge state {:executor (Executors/newSingleThreadExecutor)
-                :on-dispose-callbacks (atom {})
-                :debug-enabled? true}))
+(defonce ^:private executor (Executors/newSingleThreadExecutor))
 
-(defn state?
-  [state]
-  (and (contains? state :executor) (contains? state :on-dispose-callbacks)))
+(defonce ^:private on-dispose-callbacks (atom {}))
 
-(defn next-tick [state f] {:pre [(state? state)]}
-  (let [executor (:executor state)
-        bound-f (bound-fn [& args] (apply f args))]
+(defn next-tick [f]
+  (let [bound-f (bound-fn [& args] (apply f args))]
     (.execute ^Executor executor bound-f))
   nil)
 
 (def empty-queue clojure.lang.PersistentQueue/EMPTY)
 
 (def after-render next-tick)
+
+(def debug-enabled? true)
 
 (defn ratom [x]
   (atom x))
@@ -65,29 +59,25 @@
 (defn add-on-dispose!
   "On JVM Clojure, use an atom to register `f` to be invoked when `dispose!` is
   invoked with `a-ratom`."
-  [state a-ratom f]
-  {:pre [(state? state)]}
-  (let [on-dispose-callbacks (:on-dispose-callbacks state)]
-    (do (swap! on-dispose-callbacks update a-ratom (fnil conj []) f)
-        nil)))
+  [a-ratom f]
+  (do (swap! on-dispose-callbacks update a-ratom (fnil conj []) f)
+      nil))
 
 (defn dispose!
   "On JVM Clojure, invoke all callbacks registered with `add-on-dispose!` for
   `a-ratom`."
-  [state a-ratom]
+  [a-ratom]
   ;; Try to replicate reagent's behavior, releasing resources first then
   ;; invoking callbacks
-  {:pre [(state? state)]}
-  (let [on-dispose-callbacks (:on-dispose-callbacks state)
-        callbacks (get @on-dispose-callbacks a-ratom)]
+  (let [callbacks (get @on-dispose-callbacks a-ratom)]
     (swap! on-dispose-callbacks dissoc a-ratom)
     (doseq [f callbacks] (f))))
 
 (defn set-timeout!
   "Note that we ignore the `ms` value and just invoke the function, because
   there isn't often much point firing a timed event in a test."
-  [state f ms]
-  (next-tick state f))
+  [f ms]
+  (next-tick f))
 
 (defn now []
   ;; currentTimeMillis may count backwards in some scenarios, but as this is used for tracing
@@ -98,3 +88,5 @@
   "Doesn't make sense in a Clojure context currently."
   [reactive-val]
   nil)
+
+

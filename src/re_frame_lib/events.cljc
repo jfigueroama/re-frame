@@ -1,15 +1,15 @@
-(ns re-frame.events
-  (:require [re-frame.db          :refer [app-db]]
-            [re-frame.utils       :refer [first-in-vector]]
-            [re-frame.interop     :refer [empty-queue debug-enabled?]]
-            [re-frame.registrar   :refer [get-handler register-handler]]
-            [re-frame.loggers     :refer [console]]
-            [re-frame.interceptor :as  interceptor]
-            [re-frame.trace       :as trace :include-macros true]))
+(ns re-frame-lib.events
+  (:require [re-frame-lib.db          :refer [app-db]]
+            [re-frame-lib.utils       :refer [first-in-vector]]
+            [re-frame-lib.interop     :refer [empty-queue debug-enabled?]]
+            [re-frame-lib.registrar   :refer [get-handler register-handler]]
+            [re-frame-lib.loggers     :refer [console]]
+            [re-frame-lib.interceptor :as  interceptor]
+            [re-frame-lib.trace       :as trace :include-macros true]))
 
 
 (def kind :event)
-(assert (re-frame.registrar/kinds kind))
+(assert (re-frame-lib.registrar/kinds kind))
 
 (defn- flatten-and-remove-nils
   "`interceptors` might have nested collections, and contain nil elements.

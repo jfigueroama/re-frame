@@ -1,7 +1,7 @@
-(ns re-frame.interceptor
+(ns re-frame-lib.interceptor
   (:require
-    [re-frame.loggers :refer [console]]
-    [re-frame.interop :refer [empty-queue debug-enabled?]]
+    [re-frame-lib.loggers :refer [console]]
+    [re-frame-lib.interop :refer [empty-queue debug-enabled?]]
     [clojure.set :as set]))
 
 

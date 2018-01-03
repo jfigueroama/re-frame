@@ -1,13 +1,14 @@
-(ns re-frame.router
-  (:require [re-frame.events  :refer [handle]]
-            [re-frame.interop :refer [after-render empty-queue next-tick]]
-            [re-frame.loggers :refer [console]]
-            [re-frame.trace   :as trace :include-macros true]))
+(ns re-frame-lib.router
+  (:require [re-frame-lib.base    :as base :refer [state?]]
+            [re-frame-lib.events  :refer [handle]]
+            [re-frame-lib.interop :refer [after-render empty-queue next-tick]]
+            [re-frame-lib.loggers :refer [console]]
+            [re-frame-lib.trace   :as trace :include-macros true]))
 
 
 ;; -- Router Loop ------------------------------------------------------------
 ;;
-;; A call to "re-frame.core/dispatch" places an event on a queue for processing.
+;; A call to "re-frame-lib.core/dispatch" places an event on a queue for processing.
 ;; A short time later, the handler registered to handle this event will be run.
 ;; What follows is the implementation of this process.
 ;;
@@ -91,7 +92,8 @@
 
 
 ;; Concrete implementation of IEventQueue
-(deftype EventQueue [#?(:cljs ^:mutable fsm-state               :clj ^:volatile-mutable fsm-state)
+(deftype EventQueue [state
+                     #?(:cljs ^:mutable fsm-state               :clj ^:volatile-mutable fsm-state)
                      #?(:cljs ^:mutable queue                   :clj ^:volatile-mutable queue)
                      #?(:cljs ^:mutable post-event-callback-fns :clj ^:volatile-mutable post-event-callback-fns)]
   IEventQueue
@@ -222,7 +224,7 @@
 ;; When "dispatch" is called, the event is added into this event queue.  Later,
 ;;  the queue will "run" and the event will be "handled" by the registered function.
 ;;
-(def event-queue (->EventQueue :idle empty-queue {}))
+;(def event-queue (->EventQueue :idle empty-queue {}))
 
 
 ;; ---------------------------------------------------------------------------

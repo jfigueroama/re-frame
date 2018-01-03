@@ -1,4 +1,4 @@
-(ns re-frame.loggers
+(ns re-frame-lib.loggers
   (:require
    [clojure.set :refer [difference]]
    #?@(:clj [[clojure.string :as str]
@@ -39,13 +39,13 @@
 
 
 (defn set-loggers!
-  "Change the set (or a subset) of logging functions used by re-frame.
+  "Change the set (or a subset) of logging functions used by re-frame-lib.
   `new-loggers` should be a map with the same keys as `loggers` (above)"
   [new-loggers]
   (assert  (empty? (difference (set (keys new-loggers)) (-> @loggers keys set))) "Unknown keys in new-loggers")
   (swap! loggers merge new-loggers))
 
 (defn get-loggers
-  "Get the current logging functions used by re-frame."
+  "Get the current logging functions used by re-frame-lib."
   []
   @loggers)
