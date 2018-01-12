@@ -1,7 +1,8 @@
 (ns re-frame-lib.interop
   (:require [goog.async.nextTick]
             [reagent.core]
-            [reagent.ratom]))
+            [reagent.ratom]
+            [re-frame-lib.base :as base]))
 
 (def next-tick goog.async.nextTick)
 
@@ -56,3 +57,5 @@
            reagent.ratom/Track "tr"
            "other")
          (hash reactive-val))))
+
+(def state? base/state?)

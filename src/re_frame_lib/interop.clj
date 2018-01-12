@@ -1,5 +1,6 @@
 (ns re-frame-lib.interop
-  (:import [java.util.concurrent Executor Executors]))
+  (:import [java.util.concurrent Executor Executors])
+  (:require [re-frame-lib.base :as base]))
 
 ;; The purpose of this file is to provide JVM-runnable implementations of the
 ;; CLJS equivalents in interop.cljs.
@@ -89,4 +90,4 @@
   [reactive-val]
   nil)
 
-
+(def state? base/state?)

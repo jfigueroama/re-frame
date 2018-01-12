@@ -1,5 +1,5 @@
 (ns re-frame-lib.events
-  (:require [re-frame-lib.db          :refer [app-db]]
+  (:require [re-frame-lib.base        :refer [state?]]
             [re-frame-lib.utils       :refer [first-in-vector]]
             [re-frame-lib.interop     :refer [empty-queue debug-enabled?]]
             [re-frame-lib.registrar   :refer [get-handler register-handler]]
@@ -48,19 +48,22 @@
 
 ;; -- handle event --------------------------------------------------------------------------------
 
-(def ^:dynamic *handling* nil)    ;; remember what event we are currently handling
+;(def ^:dynamic *handling* nil)    ;; remember what event we are currently handling
 
 (defn handle
   "Given an event vector `event-v`, look up the associated interceptor chain, and execute it."
-  [event-v]
-  (let [event-id  (first-in-vector event-v)]
-    (if-let [interceptors  (get-handler kind event-id true)]
-      (if *handling*
+  [state event-v]
+  {:pre [(state? state)]}
+  (let [event-id  (first-in-vector event-v)
+        *handling* (:handling state)]
+    (if-let [interceptors  (get-handler state kind event-id true)]
+      (if @*handling*
         (console :error "re-frame: while handling \"" *handling* "\", dispatch-sync was called for \"" event-v "\". You can't call dispatch-sync within an event handler.")
-        (binding [*handling*  event-v]
-          (trace/with-trace {:operation event-id
-                             :op-type   kind
-                             :tags      {:event event-v}}
-            (interceptor/execute event-v interceptors)))))))
-
+        (reset! *handling* event-v)
+        (trace/with-trace state
+                          {:operation event-id
+                           :op-type   kind
+                           :tags      {:event event-v}}
+          (interceptor/execute event-v interceptors))
+        (reset! *handling* nil)))))
 

@@ -128,7 +128,7 @@
     ;; Given a "trigger", and the existing FSM state, it computes the
     ;; new FSM state and the transition action (function).
 
-    (trace/with-trace {:op-type ::fsm-trigger}
+    (trace/with-trace state {:op-type ::fsm-trigger}
       (let [[new-fsm-state action-fn]
             (case [fsm-state trigger]
 
@@ -163,7 +163,8 @@
 
         ;; The "case" above computed both the new FSM state, and the action. Now, make it happen.
 
-        (trace/merge-trace! {:operation [fsm-state trigger]
+        (trace/merge-trace! state
+                            {:operation [fsm-state trigger]
                              :tags      {:current-state fsm-state
                                          :new-state     new-fsm-state}})
         (set! fsm-state new-fsm-state)
@@ -177,7 +178,7 @@
     [this]
     (let [event-v (peek queue)]
       (try
-        (handle event-v)
+        (handle state event-v)
         (set! queue (pop queue))
         (-call-post-event-callbacks this event-v)
         (catch #?(:cljs :default :clj Exception) ex
@@ -241,12 +242,14 @@
   added to the end of a FIFO queue which already contain events.
 
   Usage:
-     (dispatch [:order-pizza {:supreme 2 :meatlovers 1 :veg 1})"
-  [event]
-  (if (nil? event)
+  (dispatch [:order-pizza {:supreme 2 :meatlovers 1 :veg 1})"
+  [state event]
+  {:pre [(state? state)]}
+  (let [event-queue (:event-queue state)]
+    (if (nil? event)
       (throw (ex-info "re-frame: you called \"dispatch\" without an event vector." {}))
       (push event-queue event))
-  nil)                                           ;; Ensure nil return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False
+    state))                                           ;; Ensure nil return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False
 
 
 (defn dispatch-sync
@@ -256,13 +259,15 @@
   to use `dispatch-sync` within an event handler.
 
   Useful when any delay in processing is a problem:
-     1. the `:on-change` handler of a text field where we are expecting fast typing.
-     2  when initialising your app - see 'main' in todomvc examples
-     3. in a unit test where we don't want the action 'later'
+  1. the `:on-change` handler of a text field where we are expecting fast typing.
+  2  when initialising your app - see 'main' in todomvc examples
+  3. in a unit test where we don't want the action 'later'
 
   Usage:
-     (dispatch-sync [:sing :falsetto 634])"
-  [event-v]
-  (handle event-v)
-  (-call-post-event-callbacks event-queue event-v)  ;; slightly ugly hack. Run the registered post event callbacks.
-  nil)                                              ;; Ensure nil return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False
+  (dispatch-sync [:sing :falsetto 634])"
+  [state event-v]
+  {:pre [(state? state)]}
+  (let [event-queue (:event-queue state)]
+    (handle state event-v)
+    (-call-post-event-callbacks event-queue event-v)  ;; slightly ugly hack. Run the registered post event callbacks.
+    state))                                              ;; Ensure nil return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False

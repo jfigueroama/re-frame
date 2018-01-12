@@ -3,7 +3,7 @@
   with a `handler` (function).  This namespace contains the
   central registry of such associations."
   (:require  [re-frame-lib.base :refer [state?]]
-             [re-frame-lib.interop :refer [state? debug-enabled?]]
+             [re-frame-lib.interop :refer [debug-enabled?]]
              [re-frame-lib.loggers :refer [console]]))
 
 
