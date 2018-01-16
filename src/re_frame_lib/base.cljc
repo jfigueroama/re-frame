@@ -1,19 +1,29 @@
-(ns re-frame-lib.base)
+(ns re-frame-lib.base
+  "Contains the very basic functions to have a separate state for
+   a re-frame execution.
+  The main point of re-frame-lib is to easy to remove most of the
+  global state required by re-frame. At some point it is done,
+  except for facilities that may be considered equal for all the
+  re-frame executions like the executor, console, tracing, etc.")
 
 (def state-keys
-  [:app-db :query->reaction :kind->id->handler :event-queue :handling
-   :interceptors 
+  "Keys that compose the state hash map. It can be more."
+  [:app-db :query->reaction :kind->id->handler  ; storage
+   :event-queue :handling                       ; events
+   :interceptors                                ; interceptors ; TODO Remove
    :trace-id :trace-enabled? :trace-cbs :trace-traces
    ])
 
 (defn state-for-testing
+  "This state is only for testing the implementation of re-frame-lib.
+  For normal usage you should use re-frame-lib.core/new-state."
   []
   {:app-db (atom {})
    :query->reaction (atom {})
    :kind->id->handler (atom {})
-   :interceptors {}
+   :interceptors {}   ; TODO Remove
    :event-queue nil
-   :handling nil
+   :handling (atom nil)
    :trace-id (atom 0)
    :trace-enabled? false
    :trace-cbs (atom {})

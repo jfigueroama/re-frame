@@ -54,16 +54,14 @@
   "Given an event vector `event-v`, look up the associated interceptor chain, and execute it."
   [state event-v]
   {:pre [(state? state)]}
-  (println "Beggining to handle " event-v)
   (let [event-id  (first-in-vector event-v)
         *handling* (:handling state)]
     (if-let [interceptors  (get-handler state kind event-id true)]
       (if @*handling*
           (console :error "re-frame: while handling \"" *handling* "\", dispatch-sync was called for \"" event-v "\". You can't call dispatch-sync within an event handler.")
           (do
-            (println "interceptors: " interceptors)
           (reset! *handling* event-v)
-          #_(trace/with-trace
+          (trace/with-trace
             state
             {:operation event-id
              :op-type   kind

@@ -286,7 +286,7 @@
    :kind->id->handler (atom {})
    :interceptors {}
    :event-queue nil
-   :handling nil
+   :handling (atom nil)
    :trace-id (atom 0)
    :trace-enabled? false
    :trace-cbs (atom {})
