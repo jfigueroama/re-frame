@@ -41,6 +41,7 @@
    ... then the `handler` `fn` we registered previously, using `reg-fx`, will be
    called with an argument of `[1 2]`."
   [state id handler]
+  {:pre [(state? state)]}
   (register-handler state kind id handler))
 
 ;; -- Interceptor -------------------------------------------------------------
@@ -89,80 +90,4 @@
 ;;    {:dispatch-later [{:ms 200 :dispatch [:event-id "param"]}    ;;  in 200ms do this: (dispatch [:event-id "param"])
 ;;                      {:ms 100 :dispatch [:also :this :in :100ms]}]}
 ;;
-(reg-fx
-  :dispatch-later
-  (fn [value]
-    (doseq [{:keys [ms dispatch] :as effect} value]
-        (if (or (empty? dispatch) (not (number? ms)))
-          (console :error "re-frame: ignoring bad :dispatch-later value:" effect)
-          (set-timeout! #(router/dispatch dispatch) ms)))))
-
-
-;; :dispatch
-;;
-;; `dispatch` one event. Excepts a single vector.
-;;
-;; usage:
-;;   {:dispatch [:event-id "param"] }
-
-(reg-fx
-  :dispatch
-  (fn [value]
-    (if-not (vector? value)
-      (console :error "re-frame: ignoring bad :dispatch value. Expected a vector, but got:" value)
-      (router/dispatch value))))
-
-
-;; :dispatch-n
-;;
-;; `dispatch` more than one event. Expects a list or vector of events. Something for which
-;; sequential? returns true.
-;;
-;; usage:
-;;   {:dispatch-n (list [:do :all] [:three :of] [:these])}
-;;
-;; Note: nil events are ignored which means events can be added
-;; conditionally:
-;;    {:dispatch-n (list (when (> 3 5) [:conditioned-out])
-;;                       [:another-one])}
-;;
-(reg-fx
-  :dispatch-n
-  (fn [value]
-    (if-not (sequential? value)
-      (console :error "re-frame: ignoring bad :dispatch-n value. Expected a collection, got got:" value)
-      (doseq [event (remove nil? value)] (router/dispatch event)))))
-
-
-;; :deregister-event-handler
-;;
-;; removes a previously registered event handler. Expects either a single id (
-;; typically a namespaced keyword), or a seq of ids.
-;;
-;; usage:
-;;   {:deregister-event-handler :my-id)}
-;; or:
-;;   {:deregister-event-handler [:one-id :another-id]}
-;;
-(reg-fx
-  :deregister-event-handler
-  (fn [value]
-    (let [clear-event (partial clear-handlers events/kind)]
-      (if (sequential? value)
-        (doseq [event value] (clear-event event))
-        (clear-event value)))))
-
-
-;; :db
-;;
-;; reset! app-db with a new value. `value` is expected to be a map.
-;;
-;; usage:
-;;   {:db  {:key1 value1 key2 value2}}
-;;
-(reg-fx
-  :db
-  (fn [value]
-    (if-not (identical? @app-db value)
-      (reset! app-db value))))
 

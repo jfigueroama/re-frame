@@ -4,7 +4,7 @@
     [re-frame-lib.interceptor :refer [->interceptor get-effect get-coeffect assoc-coeffect assoc-effect]]
     [re-frame-lib.loggers :refer [console]]
     [re-frame-lib.registrar :as registrar]
-    [re-frame-lib.db :refer [app-db]]
+    ;[re-frame-lib.db :refer [app-db]]
     [clojure.data :as data]
     [re-frame-lib.cofx :as cofx]
     [re-frame-lib.utils :as utils]))

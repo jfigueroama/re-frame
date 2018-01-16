@@ -44,20 +44,23 @@
       (when (get-handler state kind id false)
         (console :warn "re-frame: overwriting" (str kind) "handler for:" id)))   ;; allow it, but warn. Happens on figwheel reloads.
     (swap! kind->id->handler assoc-in [kind id] handler-fn)
-    handler-fn))    ;; note: returns the just registered handler
+    state))          ;; note: returns the state
+    ;handler-fn))    ;; note: returns the just registered handler
 
 
 (defn clear-handlers
   ([state]            ;; clear all kinds
    {:pre [(state? state)]}
    (let [kind->id->handler (:kind->id->handler state)]
-     (reset! kind->id->handler {})))
+     (reset! kind->id->handler {})
+     state))
 
   ([state kind]        ;; clear all handlers for this kind
    {:pre [(state? state)]}
    (let [kind->id->handler (:kind->id->handler state)]
      (assert (kinds kind))
-     (swap! kind->id->handler dissoc kind)))
+     (swap! kind->id->handler dissoc kind)
+     state))
 
   ([state kind id]     ;; clear a single handler for a kind
    {:pre [(state? state)]}
@@ -65,5 +68,6 @@
      (assert (kinds kind))
      (if (get-handler state kind id)
        (swap! kind->id->handler update-in [kind] dissoc id)
-       (console :warn "re-frame: can't clear" (str kind) "handler for" (str id ". Handler not found."))))))
+       (console :warn "re-frame: can't clear" (str kind) "handler for" (str id ". Handler not found.")))
+     state)))
 

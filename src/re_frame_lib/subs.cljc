@@ -101,9 +101,9 @@
   Example Usage:
   --------------
 
-    (subscribe [:items])
-    (subscribe [:items \"blue\" :small])
-    (subscribe [:items {:colour \"blue\"  :size :small}])
+  (subscribe [:items])
+  (subscribe [:items \"blue\" :small])
+  (subscribe [:items {:colour \"blue\"  :size :small}])
 
   Note: for any given call to `subscribe` there must have been a previous call
   to `reg-sub`, registering the query handler (function) for the `query-id` given.
@@ -114,7 +114,7 @@
   When used in a view function BE SURE to `deref` the returned value.
   In fact, to avoid any mistakes, some prefer to define:
 
-     (def <sub  (comp deref re-frame-lib.core/subscribe))
+  (def <sub  (comp deref re-frame-lib.core/subscribe))
 
   And then, within their views, they call  `(<sub [:items :small])` rather
   than using `subscribe` directly.
@@ -127,53 +127,55 @@
 
   ([state query]
    {:pre [(state? state)]}
-   (trace/with-trace state
-                     {:operation (first-in-vector query)
-                      :op-type   :sub/create
-                      :tags      {:query-v query}}
-     (if-let [cached (cache-lookup state query)]
-       (do
-         (trace/merge-trace! state {:tags {:cached?  true
-                                           :reaction (reagent-id cached)}})
-         cached)
+   (let [app-db (:app-db state)]
+     (trace/with-trace state
+       {:operation (first-in-vector query)
+        :op-type   :sub/create
+        :tags      {:query-v query}}
+       (if-let [cached (cache-lookup state query)]
+         (do
+           (trace/merge-trace! state {:tags {:cached?  true
+                                             :reaction (reagent-id cached)}})
+           cached)
 
-       (let [query-id   (first-in-vector query)
-             handler-fn (get-handler state kind query-id)]
-         (trace/merge-trace! state {:tags {:cached? false}})
-         (if (nil? handler-fn)
-           (do (trace/merge-trace! state {:error true})
-               (console :error (str "re-frame: no subscription handler registered for: \"" query-id "\". Returning a nil subscription.")))
-           (cache-and-return state query [] (handler-fn app-db query)))))))
+         (let [query-id   (first-in-vector query)
+               handler-fn (get-handler state kind query-id)]
+           (trace/merge-trace! state {:tags {:cached? false}})
+           (if (nil? handler-fn)
+             (do (trace/merge-trace! state {:error true})
+                 (console :error (str "re-frame: no subscription handler registered for: \"" query-id "\". Returning a nil subscription.")))
+             (cache-and-return state query [] (handler-fn app-db query))))))))
 
   ([state query dynv]
    {:pre [(state? state)]}
-   (trace/with-trace state
-                     {:operation (first-in-vector query)
-                      :op-type   :sub/create
-                      :tags      {:query-v query
-                                  :dyn-v   dynv}}
-     (if-let [cached (cache-lookup state query dynv)]
-       (do
-         (trace/merge-trace! state {:tags {:cached?  true
-                                           :reaction (reagent-id cached)}})
-         cached)
-       (let [query-id   (first-in-vector query)
-             handler-fn (get-handler state kind query-id)]
-         (trace/merge-trace! state {:tags {:cached? false}})
-         (when debug-enabled?
-           (when-let [not-reactive (not-empty (remove ratom? dynv))]
-             (console :warn "re-frame: your subscription's dynamic parameters that don't implement IReactiveAtom:" not-reactive)))
-         (if (nil? handler-fn)
-           (do (trace/merge-trace! state {:error true})
-               (console :error (str "re-frame: no subscription handler registered for: \"" query-id "\". Returning a nil subscription.")))
-           (let [app-db (:app-db state)
-                 dyn-vals (make-reaction (fn [] (mapv deref dynv)))
-                 sub      (make-reaction (fn [] (handler-fn app-db query @dyn-vals)))]
-             ;; handler-fn returns a reaction which is then wrapped in the sub reaction
-             ;; need to double deref it to get to the actual value.
-             ;(console :log "Subscription created: " v dynv)
-             (cache-and-return state query dynv
-                               (make-reaction (fn [] @@sub))))))))))
+   (let [app-db (:app-db state)]
+     (trace/with-trace state
+       {:operation (first-in-vector query)
+        :op-type   :sub/create
+        :tags      {:query-v query
+                    :dyn-v   dynv}}
+       (if-let [cached (cache-lookup state query dynv)]
+         (do
+           (trace/merge-trace! state {:tags {:cached?  true
+                                             :reaction (reagent-id cached)}})
+           cached)
+         (let [query-id   (first-in-vector query)
+               handler-fn (get-handler state kind query-id)]
+           (trace/merge-trace! state {:tags {:cached? false}})
+           (when debug-enabled?
+             (when-let [not-reactive (not-empty (remove ratom? dynv))]
+               (console :warn "re-frame: your subscription's dynamic parameters that don't implement IReactiveAtom:" not-reactive)))
+           (if (nil? handler-fn)
+             (do (trace/merge-trace! state {:error true})
+                 (console :error (str "re-frame: no subscription handler registered for: \"" query-id "\". Returning a nil subscription.")))
+             (let [app-db (:app-db state)
+                   dyn-vals (make-reaction (fn [] (mapv deref dynv)))
+                   sub      (make-reaction (fn [] (handler-fn app-db query @dyn-vals)))]
+               ;; handler-fn returns a reaction which is then wrapped in the sub reaction
+               ;; need to double deref it to get to the actual value.
+               ;(console :log "Subscription created: " v dynv)
+               (cache-and-return state query dynv
+                                 (make-reaction (fn [] @@sub)))))))))))
 
 ;; -- reg-sub -----------------------------------------------------------------
 

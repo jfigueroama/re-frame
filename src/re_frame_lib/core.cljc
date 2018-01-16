@@ -3,7 +3,8 @@
     [re-frame-lib.base             :as base :refer [state?]]
     [re-frame-lib.events           :as events]
     [re-frame-lib.subs             :as subs]
-    [re-frame-lib.interop          :as interop :refer [ratom]]
+    [re-frame-lib.interop          :as interop
+                                   :refer [empty-queue ratom set-timeout!]]
     [re-frame-lib.db               :as db]
     [re-frame-lib.fx               :as fx]
     [re-frame-lib.cofx             :as cofx]
@@ -68,7 +69,7 @@
 
 ;; -- effects -----------------------------------------------------------------
 (def reg-fx      fx/reg-fx)
-(def clear-fx    (clear-x fx/kind)  ;; think unreg-fx
+(def clear-fx    (clear-x fx/kind))  ;; think unreg-fx
 
 ;; -- coeffects ---------------------------------------------------------------
 (def reg-cofx    cofx/reg-cofx)
@@ -229,43 +230,45 @@
 
 (defn add-post-event-callback
   "Registers a function `f` to be called after each event is processed
-   `f` will be called with two arguments:
-    - `event`: a vector. The event just processed.
-    - `queue`: a PersistentQueue, possibly empty, of events yet to be processed.
+  `f` will be called with two arguments:
+  - `event`: a vector. The event just processed.
+  - `queue`: a PersistentQueue, possibly empty, of events yet to be processed.
 
-   This is useful in advanced cases like:
-     - you are implementing a complex bootstrap pipeline
-     - you want to create your own handling infrastructure, with perhaps multiple
-       handlers for the one event, etc.  Hook in here.
-     - libraries providing 'isomorphic javascript' rendering on  Nodejs or Nashorn.
+  This is useful in advanced cases like:
+  - you are implementing a complex bootstrap pipeline
+  - you want to create your own handling infrastructure, with perhaps multiple
+  handlers for the one event, etc.  Hook in here.
+  - libraries providing 'isomorphic javascript' rendering on  Nodejs or Nashorn.
 
   'id' is typically a keyword. Supplied at \"add time\" so it can subsequently
   be used at \"remove time\" to get rid of the right callback.
   "
-  ([state]
+  ([state f]
    {:pre [(state? state)]}
    (add-post-event-callback state f f))   ;; use f as its own identifier
   ([state id f]
    {:pre [(state? state)]}
    (let [event-queue (:event-queue state)]
-   (router/add-post-event-callback event-queue id f))))
+     (router/add-post-event-callback event-queue id f)
+     state)))
 
 
 (defn remove-post-event-callback
   [state id]
   (let [event-queue (:event-queue state)]
-    (router/remove-post-event-callback event-queue id)))
+    (router/remove-post-event-callback event-queue id)
+    state))
 
 
-;; STATE
+;; STATE -------------------------------------------
 
-(defn new-state
+#_(defn new-state
   []
   {:app-db  (ratom {})
    :query->reaction (ratom {})
    :debug-enabled? false
    :kind->id->handler (atom {})
-   :interceptors
+   :interceptors []
    :*handling* (atom nil)
    :trace-id nil
    :trace-current-trace nil
@@ -282,6 +285,12 @@
    :query->reaction (ratom {})
    :kind->id->handler (atom {})
    :interceptors {}
+   :event-queue nil
+   :handling nil
+   :trace-id (atom 0)
+   :trace-enabled? false
+   :trace-cbs (atom {})
+   :trace-traces (atom [])
    })
 
 (defn add-state-defaults
@@ -292,14 +301,91 @@
         :db
         (fn db-coeffects-handler
           [coeffects]
-          (assoc coeffects :db @app-db))) 
-      
-      
-      
-      ))
+          (assoc coeffects :db @(:app-db state)))) 
+
+      (reg-fx
+        :dispatch-later
+        (fn [value]
+          (doseq [{:keys [ms dispatch] :as effect} value]
+            (if (or (empty? dispatch) (not (number? ms)))
+              (console :error "re-frame: ignoring bad :dispatch-later value:" effect)
+              (set-timeout! #(router/dispatch state dispatch) ms)))))
+
+
+      ;; :dispatch
+      ;;
+      ;; `dispatch` one event. Excepts a single vector.
+      ;;
+      ;; usage:
+      ;;   {:dispatch [:event-id "param"] }
+
+      (reg-fx
+        :dispatch
+        (fn [value]
+          (if-not (vector? value)
+            (console :error "re-frame: ignoring bad :dispatch value. Expected a vector, but got:" value)
+            (router/dispatch state value))))
+
+
+      ;; :dispatch-n
+      ;;
+      ;; `dispatch` more than one event. Expects a list or vector of events. Something for which
+      ;; sequential? returns true.
+      ;;
+      ;; usage:
+      ;;   {:dispatch-n (list [:do :all] [:three :of] [:these])}
+      ;;
+      ;; Note: nil events are ignored which means events can be added
+      ;; conditionally:
+      ;;    {:dispatch-n (list (when (> 3 5) [:conditioned-out])
+      ;;                       [:another-one])}
+      ;;
+      (reg-fx
+        :dispatch-n
+        (fn [value]
+          (if-not (sequential? value)
+            (console :error "re-frame: ignoring bad :dispatch-n value. Expected a collection, got got:" value)
+            (doseq [event (remove nil? value)] (router/dispatch state event)))))
+
+
+      ;; :deregister-event-handler
+      ;;
+      ;; removes a previously registered event handler. Expects either a single id (
+      ;; typically a namespaced keyword), or a seq of ids.
+      ;;
+      ;; usage:
+      ;;   {:deregister-event-handler :my-id}
+      ;; or:
+      ;;   {:deregister-event-handler [:one-id :another-id]}
+      ;;
+      (reg-fx
+        :deregister-event-handler
+        (fn [value]
+          (let [clear-event (clear-x events/kind)]
+            (if (sequential? value)
+              (doseq [event value] (clear-event state event))
+              (clear-event state value)))))
+
+
+      ;; :db
+      ;;
+      ;; reset! app-db with a new value. `value` is expected to be a map.
+      ;;
+      ;; usage:
+      ;;   {:db  {:key1 value1 key2 value2}}
+      ;;
+      (reg-fx
+        :db
+        (fn [value]
+          (let [app-db (:app-db state)]
+            (if-not (identical? @app-db value)
+              (reset! app-db value)))))  ))
 
 
 (defn new-state
   []
   (let [state (new-state-wo-event-queue)]
-    (router/->EventQueue state :idle router/empty-queue {})))
+    (add-state-defaults
+      (assoc state
+             :event-queue
+             (router/->EventQueue state :idle empty-queue {})))))

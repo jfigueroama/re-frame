@@ -21,7 +21,7 @@
 (defn ^boolean is-trace-enabled?
   "See https://groups.google.com/d/msg/clojurescript/jk43kmYiMhA/IHglVr_TPdgJ for more details"
   [state]
-  (:trace-enabled? state))
+  (or (:trace-enabled? state) false))
 
 ;(def trace-cbs (atom {}))
 ;(defonce traces (atom []))
@@ -61,6 +61,7 @@
      :clj  (f)))
 
 (defn run-tracing-callbacks!
+  [state]
   {:pre [(state? state)]}
   (let [trace-cbs (:trace-cbs state)
         traces    (:trace-traces state)]
@@ -78,14 +79,15 @@
 
 (macros/deftime
   (defmacro finish-trace [state trace]
-    `(let [traces (:trace-traces ~state)]
-       (when (is-trace-enabled? ~state)
-         (let [end#      (interop/now)
-               duration# (- end# (:start ~trace))]
-           (swap! traces conj (assoc ~trace
-                                     :duration duration#
-                                     :end (interop/now)))
-           (run-tracing-callbacks! state)))))
+    `(when (is-trace-enabled? ~state)
+       (let [traces# (:trace-traces ~state)
+             end#      (interop/now)
+             duration# (- end# (:start ~trace))]
+         (swap! traces# conj (assoc ~trace
+                                    :duration duration#
+                                    :end (interop/now)))
+         ( (run-tracing-callbacks! ~state) )
+         )))
 
  (defmacro with-trace
      "Create a trace inside the scope of the with-trace macro
@@ -96,9 +98,9 @@
           tags - a map of arbitrary kv pairs"
      [state {:keys [operation op-type tags child-of] :as trace-opts} & body]
      `(if (is-trace-enabled? ~state)
-        (binding [*current-trace* (start-trace ~trace-opts)]
+        (binding [*current-trace* (start-trace ~state ~trace-opts)]
           (try ~@body
-               (finally (finish-trace state *current-trace*))))
+               (finally (finish-trace ~state *current-trace*))))
         (do ~@body)))
 
   (defmacro merge-trace! [state m]
