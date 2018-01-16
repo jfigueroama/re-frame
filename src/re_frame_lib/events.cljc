@@ -41,8 +41,8 @@
 
    Typically, an `event handler` will be at the end of the chain (wrapped
    in an interceptor)."
-  [id interceptors]
-  (register-handler kind id (flatten-and-remove-nils id interceptors)))
+  [state id interceptors]
+  (register-handler state kind id (flatten-and-remove-nils id interceptors)))
 
 
 

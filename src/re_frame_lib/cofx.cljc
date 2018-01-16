@@ -1,6 +1,7 @@
 (ns re-frame-lib.cofx
   (:require
-    [re-frame-lib.db           :refer [app-db]]
+    [re-frame-lib.base         :refer [state?]]
+    ;[re-frame-lib.db           :refer [app-db]]
     [re-frame-lib.interceptor  :refer [->interceptor]]
     [re-frame-lib.registrar    :refer [get-handler clear-handlers register-handler]]
     [re-frame-lib.loggers      :refer [console]]))
@@ -20,8 +21,9 @@
   always `coeffects` and which returns an updated `coeffects`.
 
   See the docs for `inject-cofx` for example use."
-  [id handler]
-  (register-handler kind id handler))
+  [state id handler]
+  {:pre [(state? state)]}
+  (register-handler state kind id handler))
 
 
 ;; -- Interceptor -------------------------------------------------------------
@@ -78,37 +80,30 @@
    Instead, the interceptor created by this function is a way to 'inject'
    'necessary resources' into the `:coeffects` (map) subsequently given
    to the event handler at call time."
-  ([id]
+  ([state id]
+  {:pre [(state? state)]}
   (->interceptor
     :id      :coeffects
     :before  (fn coeffects-before
                [context]
-               (if-let [handler (get-handler kind id)]
+               (if-let [handler (get-handler state kind id)]
                  (update context :coeffects handler)
                  (console :error "No cofx handler registered for \"" id "\"")))))
-  ([id value]
+  ([state id value]
+  {:pre [(state? state)]}
    (->interceptor
      :id     :coeffects
      :before  (fn coeffects-before
                 [context]
-                (if-let [handler (get-handler kind id)]
+                (if-let [handler (get-handler state kind id)]
                   (update context :coeffects handler value)
                   (console :error "No cofx handler registered for \"" id "\""))))))
 
 
 ;; -- Builtin CoEffects Handlers  ---------------------------------------------
 
-;; :db
-;;
-;; Adds to coeffects the value in `app-db`, under the key `:db`
-(reg-cofx
-  :db
-  (fn db-coeffects-handler
-    [coeffects]
-    (assoc coeffects :db @app-db)))
-
-
 ;; Because this interceptor is used so much, we reify it
-(def inject-db (inject-cofx :db))
+;; This does not work any more.
+(defn inject-db [state] {:pre [(state? state)]} (inject-cofx state :db))
 
 

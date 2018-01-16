@@ -46,25 +46,34 @@
 (def reg-sub        subs/reg-sub)
 (def subscribe      subs/subscribe)
 
-(def clear-sub (partial registrar/clear-handlers subs/kind))  ;; think unreg-sub
+(defn- clear-x
+  [kind]
+  (fn clear-x-kind
+    [state & params]
+    {:pre [(state? state)]}
+    (apply registrar/clear-handlers
+           (concat [state kind] params))))
+
+(def clear-sub (clear-x subs/kind))  ;; think unreg-sub
 (def clear-subscription-cache! subs/clear-subscription-cache!)
 
 (defn reg-sub-raw
   "This is a low level, advanced function.  You should probably be
   using reg-sub instead.
   Docs in https://github.com/Day8/re-frame/blob/master/docs/SubscriptionFlow.md"
-  [query-id handler-fn]
-  (registrar/register-handler subs/kind query-id handler-fn))
+  [state query-id handler-fn]
+  {:pre [(state? state)]}
+  (registrar/register-handler state subs/kind query-id handler-fn))
 
 
 ;; -- effects -----------------------------------------------------------------
 (def reg-fx      fx/reg-fx)
-(def clear-fx    (partial registrar/clear-handlers fx/kind))  ;; think unreg-fx
+(def clear-fx    (clear-x fx/kind)  ;; think unreg-fx
 
 ;; -- coeffects ---------------------------------------------------------------
 (def reg-cofx    cofx/reg-cofx)
 (def inject-cofx cofx/inject-cofx)
-(def clear-cofx (partial registrar/clear-handlers cofx/kind)) ;; think unreg-cofx
+(def clear-cofx (clear-x cofx/kind)) ;; think unreg-cofx
 
 
 ;; -- Events ------------------------------------------------------------------
@@ -79,10 +88,16 @@
    chain, so that, in the end, only a chain is registered.
    Special effects and coeffects interceptors are added to the front of this
    chain."
-  ([id handler]
-    (reg-event-db id nil handler))
-  ([id interceptors handler]
-   (events/register id [cofx/inject-db fx/do-fx interceptors (db-handler->interceptor handler)])))
+  ([state id handler]
+   {:pre [(state? state)]}
+   (reg-event-db state id nil handler))
+  ([state id interceptors handler]
+   (events/register state
+                    id
+                    [(cofx/inject-db state)
+                     (fx/do-fx state)
+                     interceptors
+                     (db-handler->interceptor handler)])))
 
 
 (defn reg-event-fx
@@ -96,10 +111,17 @@
    Special effects and coeffects interceptors are added to the front of the
    interceptor chain.  These interceptors inject the value of app-db into coeffects,
    and, later, action effects."
-  ([id handler]
-   (reg-event-fx id nil handler))
-  ([id interceptors handler]
-   (events/register id [cofx/inject-db fx/do-fx interceptors (fx-handler->interceptor handler)])))
+  ([state id handler]
+   {:pre [(state? state)]}
+   (reg-event-fx state id nil handler))
+  ([state id interceptors handler]
+   {:pre [(state? state)]}
+   (events/register state
+                    id
+                    [(cofx/inject-db state)
+                     (fx/do-fx state)
+                     interceptors
+                     (fx-handler->interceptor handler)])))
 
 
 (defn reg-event-ctx
@@ -109,12 +131,19 @@
   `handler` is a function: (context-map event-vector) -> context-map
 
   This form of registration is almost never used. "
-  ([id handler]
+  ([state id handler]
+   {:pre [(state? state)]}
    (reg-event-ctx id nil handler))
-  ([id interceptors handler]
-   (events/register id [cofx/inject-db fx/do-fx interceptors (ctx-handler->interceptor handler)])))
+  ([state id interceptors handler]
+   {:pre [(state? state)]}
+   (events/register state
+                    id
+                    [(cofx/inject-db state)
+                     (fx/do-fx state)
+                     interceptors
+                     (ctx-handler->interceptor handler)])))
 
-(def clear-event (partial registrar/clear-handlers events/kind)) ;; think unreg-event-*
+(def clear-event (clear-x events/kind)) ;; think unreg-event-*
 
 ;; -- interceptors ------------------------------------------------------------
 
@@ -167,13 +196,12 @@
 
 ;; -- unit testing ------------------------------------------------------------
 
-(defn make-restore-fn
+#_(defn make-restore-fn
   "Checkpoints the state of re-frame and returns a function which, when
   later called, will restore re-frame to that checkpointed state.
 
   Checkpoint includes app-db, all registered handlers and all subscriptions.
   "
-  []
   (let [handlers @registrar/kind->id->handler
         app-db   @db/app-db
 				subs-cache @subs/query->reaction]
@@ -192,7 +220,7 @@
       (reset! db/app-db app-db)
       nil)))
 
-(defn purge-event-queue
+#_(defn purge-event-queue
   "Remove all events queued for processing"
   []
   (router/purge re-frame-lib.router/event-queue))
@@ -214,28 +242,20 @@
   'id' is typically a keyword. Supplied at \"add time\" so it can subsequently
   be used at \"remove time\" to get rid of the right callback.
   "
-  ([f]
-   (add-post-event-callback f f))   ;; use f as its own identifier
-  ([id f]
-   (router/add-post-event-callback re-frame-lib.router/event-queue id f)))
+  ([state]
+   {:pre [(state? state)]}
+   (add-post-event-callback state f f))   ;; use f as its own identifier
+  ([state id f]
+   {:pre [(state? state)]}
+   (let [event-queue (:event-queue state)]
+   (router/add-post-event-callback event-queue id f))))
 
 
 (defn remove-post-event-callback
-  [id]
-  (router/remove-post-event-callback re-frame-lib.router/event-queue id))
+  [state id]
+  (let [event-queue (:event-queue state)]
+    (router/remove-post-event-callback event-queue id)))
 
-
-;; --  Deprecation ------------------------------------------------------------
-;; Assisting the v0.7.x ->  v0.8.x transition.
-(defn register-handler
-  [& args]
-  (console :warn  "re-frame:  \"register-handler\" has been renamed \"reg-event-db\" (look for registration of " (str (first args)) ")")
-  (apply reg-event-db args))
-
-(defn register-sub
-  [& args]
-  (console :warn  "re-frame:  \"register-sub\" is deprecated. Use \"reg-sub-raw\" (look for registration of " (str (first args)) ")")
-  (apply reg-sub-raw args))
 
 ;; STATE
 
@@ -245,7 +265,7 @@
    :query->reaction (ratom {})
    :debug-enabled? false
    :kind->id->handler (atom {})
-   :event-queue (->EventQueue :idle empty-queue {}) ; FIX cyclic dependency
+   :interceptors
    :*handling* (atom nil)
    :trace-id nil
    :trace-current-trace nil
@@ -256,11 +276,27 @@
                    :group    (partial interop/log :info)
                    :groupEnd  #()})})
 
-(def new-state-wo-event-queue
+(defn new-state-wo-event-queue
   []
   {:app-db (ratom {})
    :query->reaction (ratom {})
-   :kind->id->handler (atom {})})
+   :kind->id->handler (atom {})
+   :interceptors {}
+   })
+
+(defn add-state-defaults
+  [state]
+  (-> state
+      ;; Adds to coeffects the value in `app-db`, under the key `:db`
+      (reg-cofx
+        :db
+        (fn db-coeffects-handler
+          [coeffects]
+          (assoc coeffects :db @app-db))) 
+      
+      
+      
+      ))
 
 
 (defn new-state

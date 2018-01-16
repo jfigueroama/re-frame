@@ -1,5 +1,6 @@
 (ns re-frame-lib.fx
   (:require
+    [re-frame-lib.base        :refer [state?]]
     [re-frame-lib.router      :as router]
     [re-frame-lib.db          :refer [app-db]]
     [re-frame-lib.interceptor :refer [->interceptor]]
@@ -8,6 +9,7 @@
     [re-frame-lib.registrar   :refer [get-handler clear-handlers register-handler]]
     [re-frame-lib.loggers     :refer [console]]))
 
+;; TODO Add every effect to the new state
 
 ;; -- Registration ------------------------------------------------------------
 
@@ -38,12 +40,12 @@
 
    ... then the `handler` `fn` we registered previously, using `reg-fx`, will be
    called with an argument of `[1 2]`."
-  [id handler]
-  (register-handler kind id handler))
+  [state id handler]
+  (register-handler state kind id handler))
 
 ;; -- Interceptor -------------------------------------------------------------
 
-(def do-fx
+(defn do-fx
   "An interceptor whose `:after` actions the contents of `:effects`. As a result,
   this interceptor is Domino 3.
 
@@ -64,12 +66,14 @@
   will be given one arg `[:hello 42]`.
 
   You cannot rely on the ordering in which effects are executed."
+  [state]
+  {:pre [(state? state)]}
   (->interceptor
     :id :do-fx
     :after (fn do-fx-after
              [context]
              (doseq [[effect-key effect-value] (:effects context)]
-               (if-let [effect-fn (get-handler kind effect-key false)]
+               (if-let [effect-fn (get-handler state kind effect-key false)]
                  (effect-fn effect-value)
                  (console :error "re-frame: no handler registered for effect: \"" effect-key "\". Ignoring."))))))
 
