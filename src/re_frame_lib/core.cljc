@@ -294,8 +294,11 @@
    })
 
 (defn add-state-defaults
+  "Adds to the re-frame state some builtin handlers, like coeffects, effects,
+  etc."
   [state]
   (-> state
+
       ;; Adds to coeffects the value in `app-db`, under the key `:db`
       (reg-cofx
         :db
@@ -303,6 +306,16 @@
           [coeffects]
           (assoc coeffects :db @(:app-db state)))) 
 
+      ;; :dispatch-later
+      ;;
+      ;; `dispatch` one or more events after given delays. Expects a collection
+      ;; of maps with two keys:  :`ms` and `:dispatch`
+      ;;
+      ;; usage:
+      ;;
+      ;;    {:dispatch-later [{:ms 200 :dispatch [:event-id "param"]}    ;;  in 200ms do this: (dispatch [:event-id "param"])
+      ;;                      {:ms 100 :dispatch [:also :this :in :100ms]}]}
+      ;;
       (reg-fx
         :dispatch-later
         (fn [value]
@@ -310,7 +323,6 @@
             (if (or (empty? dispatch) (not (number? ms)))
               (console :error "re-frame: ignoring bad :dispatch-later value:" effect)
               (set-timeout! #(router/dispatch state dispatch) ms)))))
-
 
       ;; :dispatch
       ;;
@@ -366,7 +378,6 @@
               (doseq [event value] (clear-event state event))
               (clear-event state value)))))
 
-
       ;; :db
       ;;
       ;; reset! app-db with a new value. `value` is expected to be a map.
@@ -383,6 +394,17 @@
 
 
 (defn new-state
+  "Creates a new re-frame `state`. This is the one to use.
+  Once created, you can create subscriptions and events handlers using the
+  doto syntax:
+  
+  (def state (new-state))
+  (doto state
+        (reg-sub :person (fn ....))
+        (reg-event-db :get-person) )
+
+  TODO. Maybe the macro -> can be used to register handlers.
+  "
   []
   (let [state (new-state-wo-event-queue)]
     (add-state-defaults

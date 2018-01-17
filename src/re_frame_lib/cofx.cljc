@@ -1,9 +1,9 @@
 (ns re-frame-lib.cofx
   (:require
     [re-frame-lib.base         :refer [state?]]
-    ;[re-frame-lib.db           :refer [app-db]]
     [re-frame-lib.interceptor  :refer [->interceptor]]
-    [re-frame-lib.registrar    :refer [get-handler clear-handlers register-handler]]
+    [re-frame-lib.registrar
+     :refer [get-handler clear-handlers register-handler]]
     [re-frame-lib.loggers      :refer [console]]))
 
 
@@ -13,8 +13,8 @@
 (assert (re-frame-lib.registrar/kinds kind))
 
 (defn reg-cofx
-  "Register the given coeffect `handler` for the given `id`, for later use
-  within `inject-cofx`.
+  "Register the given coeffect `handler` for the given `id` inside the re-frame
+  `state`, for later use within `inject-cofx`.
 
   `id` is keyword, often namespaced.
   `handler` is a function which takes either one or two arguements, the first of which is
@@ -29,9 +29,9 @@
 ;; -- Interceptor -------------------------------------------------------------
 
 (defn inject-cofx
-  "Given an `id`, and an optional, arbitrary `value`, returns an interceptor
-   whose `:before` adds to the `:coeffects` (map) by calling a pre-registered
-   'coeffect handler' identified by the `id`.
+  "Given the `state`, an `id`, and an optional, arbitrary `value`, returns an
+  interceptor whose `:before` adds to the `:coeffects` (map) by calling a
+  pre-registered 'coeffect handler' identified by the `id`.
 
    The previous association of a `coeffect handler` with an `id` will have
    happened via a call to `re-frame-lib.core/reg-cofx` - generally on program startup.
@@ -49,6 +49,7 @@
    1. Early in app startup, you register a `coeffect handler` for `:datetime`:
 
       (re-frame-lib.core/reg-cofx
+        state
         :datetime                        ;; usage  (inject-cofx :datetime)
         (fn coeffect-handler
           [coeffect]
@@ -57,6 +58,7 @@
    2. Later, add an interceptor to an -fx event handler, using `inject-cofx`:
 
       (re-frame-lib.core/reg-event-fx        ;; we are registering an event handler
+         state
          :event-id
          [ ... (inject-cofx :datetime) ... ]    ;; <-- create an injecting interceptor
          (fn event-handler

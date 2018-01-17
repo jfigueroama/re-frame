@@ -33,7 +33,8 @@
 
 
 (defn register
-  "Associate the given event `id` with the given collection of `interceptors`.
+  "Associate the given event `id` with the given collection of `interceptors`
+  in the re-frame `state`.
 
    `interceptors` may contain nested collections and there may be nils
    at any level,so process this structure into a simple, nil-less vector
@@ -48,10 +49,9 @@
 
 ;; -- handle event --------------------------------------------------------------------------------
 
-;(def ^:dynamic *handling* nil)    ;; remember what event we are currently handling
-
 (defn handle
-  "Given an event vector `event-v`, look up the associated interceptor chain, and execute it."
+  "Given an event vector `event-v` and the re-frame `state`, look up
+  the associated interceptor chain, and execute it."
   [state event-v]
   {:pre [(state? state)]}
   (let [event-id  (first-in-vector event-v)

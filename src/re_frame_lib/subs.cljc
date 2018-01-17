@@ -1,8 +1,9 @@
 (ns re-frame-lib.subs
  (:require
-   ;[re-frame-lib.db        :refer [app-db]]
    [re-frame-lib.base      :refer [state?]]
-   [re-frame-lib.interop   :refer [add-on-dispose! debug-enabled? make-reaction ratom? deref? dispose! reagent-id ratom]]
+   [re-frame-lib.interop
+    :refer [add-on-dispose! debug-enabled? make-reaction ratom? deref?
+            dispose! reagent-id ratom]]
    [re-frame-lib.loggers   :refer [console]]
    [re-frame-lib.utils     :refer [first-in-vector]]
    [re-frame-lib.registrar :refer [get-handler clear-handlers register-handler]]
@@ -37,7 +38,7 @@
       (console :warn "Subscription cache should be empty after clearing it."))))
 
 (defn clear-all-handlers!
-  "Unregisters all existing subscription handlers"
+  "Unregisters all existing subscription handlers."
   [state]
   {:pre [(state? state)]}
   (let [query->reaction (:query->reaction state)]
@@ -51,16 +52,18 @@
   (let [query->reaction (:query->reaction state)
         cache-key [query-v dynv]]
     ;; when this reaction is no longer being used, remove it from the cache
-    (add-on-dispose! r #(trace/with-trace state
-                                          {:operation (first-in-vector query-v)
-                                           :op-type   :sub/dispose
-                                           :tags      {:query-v  query-v
-                                                       :reaction (reagent-id r)}}
-                                          (swap! query->reaction
-                                                 (fn [query-cache]
-                                                   (if (and (contains? query-cache cache-key) (identical? r (get query-cache cache-key)))
-                                                     (dissoc query-cache cache-key)
-                                                     query-cache)))))
+    (add-on-dispose!
+      r
+      #(trace/with-trace state
+         {:operation (first-in-vector query-v)
+          :op-type   :sub/dispose
+          :tags      {:query-v  query-v
+                      :reaction (reagent-id r)}}
+         (swap! query->reaction
+                (fn [query-cache]
+                  (if (and (contains? query-cache cache-key) (identical? r (get query-cache cache-key)))
+                    (dissoc query-cache cache-key)
+                    query-cache)))))
     ;; cache this reaction, so it can be used to deduplicate other, later "=" subscriptions
     (swap! query->reaction (fn [query-cache]
                              (when debug-enabled?
@@ -83,11 +86,13 @@
 ;; -- subscribe ---------------------------------------------------------------
 
 (defn subscribe
-  "Given a `query`, returns a Reagent `reaction` which, over
-  time, reactively delivers a stream of values. So in FRP-ish terms,
-  it returns a Signal.
+  "Given a re-frame `state` and a `query`, returns a Reagent `reaction`
+  which, over time, reactively delivers a stream of values.
+  So in FRP-ish terms, it returns a Signal.
 
   To obtain the returned Signal/Stream's current value, it must be `deref`ed.
+
+  `state` is a re-frame state created with the re-frame-lib.core/new-state fn.
 
   `query` is a vector of at least one element. The first element is the
   `query-id`, typically a namespaced keyword. The rest of the vector's
@@ -101,9 +106,9 @@
   Example Usage:
   --------------
 
-  (subscribe [:items])
-  (subscribe [:items \"blue\" :small])
-  (subscribe [:items {:colour \"blue\"  :size :small}])
+  (subscribe state [:items])
+  (subscribe state [:items \"blue\" :small])
+  (subscribe state [:items {:colour \"blue\"  :size :small}])
 
   Note: for any given call to `subscribe` there must have been a previous call
   to `reg-sub`, registering the query handler (function) for the `query-id` given.
@@ -114,7 +119,7 @@
   When used in a view function BE SURE to `deref` the returned value.
   In fact, to avoid any mistakes, some prefer to define:
 
-  (def <sub  (comp deref re-frame-lib.core/subscribe))
+  (def <sub  (comp deref (partial re-frame-lib.core/subscribe state)))
 
   And then, within their views, they call  `(<sub [:items :small])` rather
   than using `subscribe` directly.
@@ -200,10 +205,11 @@
 
 
 (defn reg-sub
-  "For a given `query-id`, register a `computation` function and input `signals`.
+  "For a given `query-id`, register a `computation` function inside the
+ re-frame `state` and input `signals`.
 
   At an abstract level, a call to this function allows you to register 'the mechanism'
-  to later fulfil a call to `(subscribe [query-id ...])`.
+  to later fulfil a call to `(subscribe state [query-id ...])`.
 
   To say that another way, reg-sub allows you to create a template for a node
   in the signal graph. But note: reg-sub does not cause a node to be created.
@@ -211,7 +217,8 @@
   node could be created, if it were needed, sometime later, when the call
   to `subscribe` is made.
 
-  reg-sub needs three things:
+  reg-sub needs four things:
+    - a `state`, which is the re-frame state created with new-state in core ns
     - a `query-id`
     - the required inputs for this node
     - a computation function for this node
@@ -231,6 +238,7 @@
   1. No input signals given:
 
      (reg-sub
+       state
        :query-id
        a-computation-fn)   ;; (fn [db v]  ... a-value)
 
@@ -240,6 +248,7 @@
   2. A signal function is supplied:
 
      (reg-sub
+       state
        :query-id
        signal-fn     ;; <-- here
        computation-fn)
@@ -274,6 +283,7 @@
   3. Syntax Sugar
 
      (reg-sub
+       state
        :a-b-sub
        :<- [:a-sub]
        :<- [:b-sub]

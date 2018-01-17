@@ -2,7 +2,6 @@
   (:require
     [re-frame-lib.base        :refer [state?]]
     [re-frame-lib.router      :as router]
-    [re-frame-lib.db          :refer [app-db]]
     [re-frame-lib.interceptor :refer [->interceptor]]
     [re-frame-lib.interop     :refer [set-timeout!]]
     [re-frame-lib.events      :as events]
@@ -17,7 +16,8 @@
 (assert (re-frame-lib.registrar/kinds kind))
 
 (defn reg-fx
-  "Register the given effect `handler` for the given `id`.
+  "Register inside the re-frame `state` the given effect `handler` for the
+  given `id`.
 
   `id` is keyword, often namespaced.
   `handler` is a side-effecting function which takes a single argument and whose return
@@ -29,6 +29,7 @@
   First, registration ... associate `:effect2` with a handler.
 
   (reg-fx
+     state
      :effect2
      (fn [value]
         ... do something side-effect-y))
@@ -47,8 +48,8 @@
 ;; -- Interceptor -------------------------------------------------------------
 
 (defn do-fx
-  "An interceptor whose `:after` actions the contents of `:effects`. As a result,
-  this interceptor is Domino 3.
+  "An interceptor whose `:after` actions the contents of `:effects`.
+  As a result, this interceptor is Domino 3. Requires the re-frame `state`.
 
   This interceptor is silently added (by reg-event-db etc) to the front of
   interceptor chains for all events.
@@ -78,16 +79,4 @@
                  (effect-fn effect-value)
                  (console :error "re-frame: no handler registered for effect: \"" effect-key "\". Ignoring."))))))
 
-;; -- Builtin Effect Handlers  ------------------------------------------------
-
-;; :dispatch-later
-;;
-;; `dispatch` one or more events after given delays. Expects a collection
-;; of maps with two keys:  :`ms` and `:dispatch`
-;;
-;; usage:
-;;
-;;    {:dispatch-later [{:ms 200 :dispatch [:event-id "param"]}    ;;  in 200ms do this: (dispatch [:event-id "param"])
-;;                      {:ms 100 :dispatch [:also :this :in :100ms]}]}
-;;
 
