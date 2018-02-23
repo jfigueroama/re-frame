@@ -1,3 +1,68 @@
+## A local state port of re-frame 1.2.0
+
+I wanted to use devcards with re-frame. It may be useful for some people too.
+
+```clojureScript
+(ns reframelib-sample.core
+  (:require [reagent.core :as reagent]
+            [reagent.ratom :as ratom]
+            [devcards.core :as dc]
+            [devtools.core :as devtools]
+
+            [re-frame-lib.core
+             :refer [new-state subscribe dispatch reg-sub reg-event-db reg-event-fx]])
+  (:require-macros [devcards.core :as dc :refer [defcard deftest defcard-rg]]))
+
+(defn add-handlers
+  [state]
+  (-> state
+      (reg-sub :db (fn db-sub [db _] db))
+      (reg-event-db :init (fn init-cmd [db _] {:start 1 :end 10 :current 1 :running false}))
+      (reg-event-fx
+        :start-step
+        (fn start-step
+          [{db :db} [_ current end]]
+          (if (> current end)
+            {:db (assoc db :running false)}
+            (let [next (inc current)
+                  long-calc (reduce + (range 10000000))]
+              {:db (assoc db :current next)
+               :dispatch-later [{:ms 50 :dispatch [:start-step next end]}]}))))
+      (reg-event-fx
+        :start
+        (fn start-cmd
+          [{db :db} _]
+          {:db (-> db
+                   (assoc :running true))
+           :dispatch [:start-step (:start db) (:end db)]}))))
+
+(defonce s1 (add-handlers (new-state)))
+(dispatch s1 [:init])
+(defonce s2 (add-handlers (new-state)))
+(dispatch s2 [:init])
+
+(defn monitor-ui
+  [state owner]
+  (let [db (subscribe @state [:db])]
+    [:div
+     [:span "Running: " (str (:running @db))] [:br]
+     [:span "Start: " (:start @db)] [:br]
+     [:span "End: " (:end @db)] [:br]
+     [:span "Current: " (:current @db)] [:br] [:br]
+     [:button {:on-click #(dispatch @state [:start])} "Start"]]))
+
+(defcard-rg re-frame-lib-c1
+  monitor-ui
+  (atom s1))
+
+(defcard-rg re-frame-lib-c2
+  monitor-ui
+  (atom s2))
+
+
+(defcard "State 1" (:app-db s1))
+(defcard "State 2" (:app-db s2))
+```
 
 
 <p align="center"><a href="https://day8.github.io/re-frame" target="_blank" rel="noopener noreferrer"><img src="docs/images/logo/re-frame-colour.png?raw=true" alt="re-frame logo"></a></p>
@@ -44,7 +109,6 @@ In re-frame, events are causal, and views are purely reactive.
 
 The re-frame documentation is [available here](https://day8.github.io/re-frame/).
 
-
 ## The Current Version 
 
 [![Clojars Project](https://img.shields.io/clojars/v/re-frame?labelColor=283C67&color=729AD1&style=for-the-badge&logo=clojure&logoColor=fff)](https://clojars.org/re-frame)
@@ -58,4 +122,3 @@ For full dependency information, see the [Clojars page](https://clojars.org/re-f
 ## Licence
 
 re-frame is [MIT licenced](license.txt)
-
