@@ -5,7 +5,6 @@
     [re-frame-lib.subs             :as subs]
     [re-frame-lib.interop          :as interop
                                    :refer [empty-queue ratom set-timeout!]]
-    [re-frame-lib.db               :as db]
     [re-frame-lib.fx               :as fx]
     [re-frame-lib.cofx             :as cofx]
     [re-frame-lib.router           :as router]

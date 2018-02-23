@@ -117,6 +117,8 @@
         // Run Tests
         //
         function run_tests() {
+            re_frame_lib.test_runner.set_print_fn_BANG_(testPrintLn);
+            re_frame_lib.test_runner.run_html_tests();
             re_frame.test_runner.set_print_fn_BANG_(testPrintLn);
             re_frame.test_runner.run_html_tests();
         }
