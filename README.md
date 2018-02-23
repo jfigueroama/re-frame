@@ -1,6 +1,6 @@
 ## A local state port of re-frame 1.2.0
 
-I wanted to use devcards with re-frame. It may be useful for some people too.
+I wanted to use devcards with re-frame. It could be useful for other people too.
 
 ```clojureScript
 (ns reframelib-sample.core
