@@ -83,16 +83,16 @@
    'necessary resources' into the `:coeffects` (map) subsequently given
    to the event handler at call time."
   ([state id]
-  {:pre [(state? state)]}
-  (->interceptor
-    :id      :coeffects
-    :before  (fn coeffects-before
-               [context]
-               (if-let [handler (get-handler state kind id)]
-                 (update context :coeffects handler)
-                 (console :error "No cofx handler registered for \"" id "\"")))))
+   {:pre [(state? state)]}
+   (->interceptor
+     :id      :coeffects
+     :before  (fn coeffects-before
+                [context]
+                (if-let [handler (get-handler state kind id)]
+                  (update context :coeffects handler)
+                  (console :error "No cofx handler registered for \"" id "\"")))))
   ([state id value]
-  {:pre [(state? state)]}
+   {:pre [(state? state)]}
    (->interceptor
      :id     :coeffects
      :before  (fn coeffects-before
@@ -107,5 +107,4 @@
 ;; Because this interceptor is used so much, we reify it
 ;; This does not work any more.
 (defn inject-db [state] {:pre [(state? state)]} (inject-cofx state :db))
-
 

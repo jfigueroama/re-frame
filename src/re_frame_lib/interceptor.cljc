@@ -2,6 +2,7 @@
   (:require
     [re-frame-lib.loggers :refer [console]]
     [re-frame-lib.interop :refer [empty-queue debug-enabled?]]
+    [re-frame-lib.trace :as trace :include-macros true]   
     [clojure.set :as set]))
 
 
@@ -23,7 +24,7 @@
       (console :error "re-frame: ->interceptor " m " has unknown keys:" unknown-keys)))
   {:id     (or id :unnamed)
    :before before
-   :after  after })
+   :after  after})
 
 ;; -- Effect Helpers  -----------------------------------------------------------------------------
 
@@ -120,9 +121,9 @@
 (defn- context
   "Create a fresh context"
   ([event interceptors]
-  (-> {}
-      (assoc-coeffect :event event)
-      (enqueue interceptors)))
+   (-> {}
+       (assoc-coeffect :event event)
+       (enqueue interceptors)))
   ([event interceptors db]      ;; only used in tests, probably a hack, remove ?  XXX
    (-> (context event interceptors)
        (assoc-coeffect :db db))))
@@ -192,6 +193,8 @@
    already done.  In advanced cases, these values can be modified by the
    functions through which the context is threaded."
   [event-v interceptors]
+  (trace/merge-trace!
+    {:tags {:interceptors interceptors}})
   (-> (context event-v interceptors)
       (invoke-interceptors :before)
       change-direction

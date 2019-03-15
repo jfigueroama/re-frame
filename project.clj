@@ -1,6 +1,6 @@
-(defproject     re-frame "lein-git-inject/version"
+(defproject     jfigueroama/re-frame "lein-git-inject/version"
   :description  "A ClojureScript MVC-like Framework For Writing SPAs Using Reagent."
-  :url          "https://github.com/day8/re-frame.git"
+  :url          "https://github.com/jfigueroama/re-frame.git"
   :license      {:name "MIT"}
 
   :dependencies [[org.clojure/clojure       "1.10.3"   :scope "provided"]

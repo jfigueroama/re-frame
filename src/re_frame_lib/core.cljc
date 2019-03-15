@@ -1,6 +1,6 @@
 (ns re-frame-lib.core
   (:require
-    [re-frame-lib.base             :as base :refer [state?]]
+    [re-frame-lib.base             :as base]
     [re-frame-lib.events           :as events]
     [re-frame-lib.subs             :as subs]
     [re-frame-lib.interop          :as interop
@@ -11,9 +11,10 @@
     [re-frame-lib.loggers          :as loggers]
     [re-frame-lib.registrar        :as registrar]
     [re-frame-lib.interceptor      :as interceptor]
-    [re-frame-lib.std-interceptors :as std-interceptors :refer [db-handler->interceptor
-                                                             fx-handler->interceptor
-                                                             ctx-handler->interceptor]]
+    [re-frame-lib.std-interceptors :as std-interceptors
+     :refer [db-handler->interceptor
+             fx-handler->interceptor
+             ctx-handler->interceptor]]
     [clojure.set               :as set]))
 
 
@@ -36,6 +37,7 @@
 ;; to the docs.
 ;;
 
+(def state? base/state?)
 
 ;; -- dispatch ----------------------------------------------------------------
 (def dispatch       router/dispatch)
@@ -123,7 +125,6 @@
                      interceptors
                      (fx-handler->interceptor handler)])))
 
-
 (defn reg-event-ctx
   "Register the given event `handler` (function) for the given `id`. Optionally, provide
   an `interceptors` chain.
@@ -196,34 +197,37 @@
 
 ;; -- unit testing ------------------------------------------------------------
 
-#_(defn make-restore-fn
+(defn make-restore-fn
   "Checkpoints the state of re-frame and returns a function which, when
-  later called, will restore re-frame to that checkpointed state.
+  later called with current-state, will restore re-frame to that
+  checkpointed state.
 
   Checkpoint includes app-db, all registered handlers and all subscriptions.
   "
-  (let [handlers @registrar/kind->id->handler
-        app-db   @db/app-db
-				subs-cache @subs/query->reaction]
-    (fn []
-			;; call `dispose!` on all current subscriptions which
-			;; didn't originally exist.
+  [state]
+  (let [handlers   @(:kind->id->handler state)
+        app-db     @(:app-db state)
+        subs-cache @(:query->reaction state)]
+    (fn [cur-state]
+     ;; call `dispose!` on all current subscriptions which
+     ;; didn't originally exist.
       (let [original-subs (set (vals subs-cache))
-            current-subs  (set (vals @subs/query->reaction))]
+            current-subs  (set (vals @(:query->reaction cur-state)))]
         (doseq [sub (set/difference current-subs original-subs)]
           (interop/dispose! sub)))
 
       ;; Reset the atoms
       ;; We don't need to reset subs/query->reaction, as
       ;; disposing of the subs removes them from the cache anyway
-      (reset! registrar/kind->id->handler handlers)
-      (reset! db/app-db app-db)
+      (reset! (:kind->id->handler cur-state)  handlers)
+      (reset! (:app-db cur-state) app-db)
       nil)))
 
-#_(defn purge-event-queue
+(defn purge-event-queue
   "Remove all events queued for processing"
-  []
-  (router/purge re-frame-lib.router/event-queue))
+  [state]
+  {:pre [(state? state)]}
+  (router/purge (:event-queue state)))
 
 ;; -- Event Processing Callbacks  ---------------------------------------------
 
@@ -261,43 +265,23 @@
 
 ;; STATE -------------------------------------------
 
-#_(defn new-state
-  []
-  {:app-db  (ratom {})
-   :query->reaction (ratom {})
-   :debug-enabled? false
-   :kind->id->handler (atom {})
-   :interceptors []
-   :*handling* (atom nil)
-   :trace-id nil
-   :trace-current-trace nil
-   :trace-enabled? false
-   :loggers (atom {:log      (partial interop/log :info)
-                   :warn     (partial interop/log :warn)
-                   :error    (partial interop/log :error)
-                   :group    (partial interop/log :info)
-                   :groupEnd  #()})})
-
 (defn new-state-wo-event-queue
   []
-  {:app-db (ratom {})
-   :query->reaction (ratom {})
+  {:app-db            (ratom {})
+   :query->reaction   (ratom {})
    :kind->id->handler (atom {})
-   :interceptors {}
-   :event-queue nil
-   :handling (atom nil)
-   :trace-id (atom 0)
-   :trace-enabled? false
-   :trace-cbs (atom {})
-   :trace-traces (atom [])
-   })
+   :event-queue       nil
+   :handling          (atom nil)
+   :trace-id          (atom 0)
+   :trace-enabled?    false
+   :trace-cbs         (atom {})
+   :trace-traces      (atom [])})
 
 (defn add-state-defaults
   "Adds to the re-frame state some builtin handlers, like coeffects, effects,
   etc."
   [state]
   (-> state
-
       ;; Adds to coeffects the value in `app-db`, under the key `:db`
       (reg-cofx
         :db
@@ -389,21 +373,26 @@
         (fn [value]
           (let [app-db (:app-db state)]
             (if-not (identical? @app-db value)
-              (reset! app-db value)))))  ))
+              (reset! app-db value)))))))
 
+(defn empty-db?
+  "Checks if the app-db atom is empty. Useful for figwheel."
+  [st]
+  (empty? @(:app-db st)))
 
 (defn new-state
   "Creates a new re-frame `state`. This is the one to use.
-  Once created, you can create subscriptions and events handlers using the
-  doto syntax:
+  Once created, you can create subscriptions and events handlers using the ->
+  threading macro:
   
-  (def state (new-state))
-  (doto state
-        (reg-sub :person (fn ....))
-        (reg-event-db :get-person) )
+  (defonce state
+    (-> (new-state)
+        subs/reg-some-subs
+        events/reg-some-events)))
 
-  TODO. Maybe the macro -> can be used to register handlers.
-  "
+  or you can reload the handlers
+  (if (empty-db? state)
+    (swap! astate #(-> % subs/reg-some-subs events/reg-some-events))) "
   []
   (let [state (new-state-wo-event-queue)]
     (add-state-defaults

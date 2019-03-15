@@ -88,6 +88,6 @@
 (defn reagent-id
   "Doesn't make sense in a Clojure context currently."
   [reactive-val]
-  nil)
+  "rx-clj")
 
 (def state? base/state?)

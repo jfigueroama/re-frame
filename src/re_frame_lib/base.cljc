@@ -10,9 +10,7 @@
   "Keys that compose the state hash map. It can be more."
   [:app-db :query->reaction :kind->id->handler  ; storage
    :event-queue :handling                       ; events
-   :interceptors                                ; interceptors ; TODO Remove
-   :trace-id :trace-enabled? :trace-cbs :trace-traces
-   ])
+   :trace-id :trace-enabled? :trace-cbs :trace-traces])
 
 (defn state-for-testing
   "This state is only for testing the implementation of re-frame-lib.
@@ -21,14 +19,13 @@
   {:app-db (atom {})
    :query->reaction (atom {})
    :kind->id->handler (atom {})
-   :interceptors {}   ; TODO Remove
    :event-queue nil
    :handling (atom nil)
    :trace-id (atom 0)
    :trace-enabled? false
    :trace-cbs (atom {})
-   :trace-traces (atom [])
-   })
+   :trace-traces (atom [])})
+   
 
 (defn state?
   [state]

@@ -45,7 +45,6 @@
         (console :warn "re-frame: overwriting" (str kind) "handler for:" id)))   ;; allow it, but warn. Happens on figwheel reloads.
     (swap! kind->id->handler assoc-in [kind id] handler-fn)
     state))          ;; note: returns the state
-    ;handler-fn))    ;; note: returns the just registered handler
 
 
 (defn clear-handlers

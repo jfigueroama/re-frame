@@ -54,19 +54,22 @@
   the associated interceptor chain, and execute it."
   [state event-v]
   {:pre [(state? state)]}
-  (let [event-id  (first-in-vector event-v)
+  (let [event-id   (first-in-vector event-v)
+        app-db     (:app-db state)
         *handling* (:handling state)]
     (if-let [interceptors  (get-handler state kind event-id true)]
       (if @*handling*
           (console :error "re-frame: while handling \"" *handling* "\", dispatch-sync was called for \"" event-v "\". You can't call dispatch-sync within an event handler.")
           (do
-          (reset! *handling* event-v)
-          (trace/with-trace
-            state
-            {:operation event-id
-             :op-type   kind
-             :tags      {:event event-v}}
-            (interceptor/execute event-v interceptors))
-          (reset! *handling* nil)) ))
+           (reset! *handling* event-v)
+           (try
+             (trace/with-trace
+                 {:operation event-id
+                  :op-type   kind
+                  :tags      {:event event-v}}
+                 (trace/merge-trace! {:tags {:app-db-before @app-db}})
+                 (interceptor/execute event-v interceptors)
+                 (trace/merge-trace! {:tags {:app-db-after  @app-db}}))
+             (finally (reset! *handling* nil))))))
     state))
 
