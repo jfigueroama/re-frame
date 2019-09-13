@@ -2,6 +2,8 @@
 
 I wanted to use devcards with re-frame. It could be useful for other people too.
 
+[![Clojars Project](https://img.shields.io/clojars/v/jfigueroama/re-frame.svg)](https://clojars.org/jfigueroama/re-frame)
+
 ```clojureScript
 (ns reframelib-sample.core
   (:require [reagent.core :as reagent]
