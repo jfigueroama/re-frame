@@ -66,6 +66,31 @@ I wanted to use devcards with re-frame. It could be useful for other people too.
 (defcard "State 2" (:app-db s2))
 ```
 
+To test an entire event flow you can use `re-frame-lib.async-test-flow`.
+Look at `src/re_frame_lib/async_test_flow.cljs` and `test/re_frame_lib/async_test_flow_test.cljs`:
+
+```clojure
+(ns re-frame-lib.async-test-flow-test
+  (:require [cljs.test :refer [deftest testing is are]]
+            [re-frame-lib.core :refer [new-state reg-event-db dispatch]]
+            [re-frame-lib.async-test-flow :refer [run-test-flow]]))
+
+(deftest runs-sucessfully
+  (let [state (-> (new-state)
+                  (reg-event-db :init  (fn init-evt [db _] (assoc db :value 0)))
+                  (reg-event-db :inc   (fn inc-evt [db _] (update db :value inc))))]
+    (async done
+      (run-test-flow
+        state
+        [[:init]  ; direct dispatch and implicit testing that we endup with a different db
+         {:dispatch [:inc]
+          :test     (fn [db] (= 1 (:value db)))}
+         {:dispatch (fn [app-state]
+                      (dispatch app-state [:inc]))
+          :test     (fn [db] (= 2 (:value db)))}]
+        {:done         done
+         :test-timeout 3000}))))
+```
 
 <p align="center"><a href="https://day8.github.io/re-frame" target="_blank" rel="noopener noreferrer"><img src="docs/images/logo/re-frame-colour.png?raw=true" alt="re-frame logo"></a></p>
 
