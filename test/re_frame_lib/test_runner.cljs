@@ -7,10 +7,11 @@
     ;[re-frame.interceptor-test]
     [re-frame-lib.state-test]
     [re-frame-lib.subs-test]
+    [re-frame-lib.async-test-flow.unit.async-test-flow]))
     ;[re-frame.fx-test]
     ;[re-frame.trace-test]
     ;[re-frame.restore-test]
-    ))
+    
 
 (enable-console-print!)
 
@@ -24,18 +25,19 @@
     ;'re-frame.interceptor-test
     're-frame-lib.state-test
     're-frame-lib.subs-test
+    're-frame-lib.async-test-flow.unit.async-test-flow))
     ;'re-frame.fx-test
     ;'re-frame.trace-test
     ;'re-frame.restore-test
-    ))
+    
 
 ;; ---- KARMA  -----------------------------------------------------------------
 
 #_(defn ^:export run-karma [karma]
-  (karma/run-tests
-    karma
-    're-frame.interceptor-test
-    're-frame.subs-test
-    're-frame.fx-test
-    're-frame.trace-test
-    're-frame.restore-test))
+   (karma/run-tests
+     karma
+     're-frame.interceptor-test
+     're-frame.subs-test
+     're-frame.fx-test
+     're-frame.trace-test
+     're-frame.restore-test))

@@ -53,7 +53,7 @@
 
                 :builds {:browser-test
                          {:target           :browser-test
-                          :ns-regexp        "re-frame\\..*-test$"
+                          :ns-regexp        "re-frame(-lib)?\\..*-test$"
                           :test-dir         "run/compiled/browser/test"
                           :compiler-options {:pretty-print                       true
                                              :external-config                    {:devtools/config {:features-to-install [:formatters :hints]}}}
@@ -63,7 +63,7 @@
 
                          :karma-test
                          {:target           :karma
-                          :ns-regexp        "re-frame\\..*-test$"
+                          :ns-regexp        "re-frame(-lib)?\\..*-test$"
                           :output-to        "run/compiled/karma/test/test.js"
                           :compiler-options {:pretty-print                       true
                                              :closure-defines                    {re-frame.trace.trace-enabled? true}}}}}
