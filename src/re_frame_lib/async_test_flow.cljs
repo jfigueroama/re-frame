@@ -1,6 +1,5 @@
 (ns re-frame-lib.async-test-flow
   (:require
-    [cljs.test :refer-macros [is async]]
     [nedap.speced.def :as speced]
     [re-frame-lib.async-test-flow.kws :as async-test-flow]
     [re-frame-lib.async-test-flow.kws.test-definition-state :as test-definition-state]
@@ -102,7 +101,6 @@
                (finally
                  (done))))))))
 
-
 (speced/defn run-test-flow
   "Runs the flow assigning an index to every test-definition"
   ([state test-defs]
@@ -110,15 +108,15 @@
   ([^::async-test-flow/state state
     ^::async-test-flow/test-definitions test-defs
     ^::async-test-flow/main-options options]
-   (async done
-          (let [general-state            (impl/new-general-state (assoc options
+   (let [{:keys [done]
+          :or   {done (constantly nil)}} options
+         general-state                   (impl/new-general-state (assoc options
                                                                         :done done
                                                                         :state state))
-                test-definitions-w-state (mapv (comp impl/add-test-definition-state
+         test-definitions-w-state        (mapv (comp impl/add-test-definition-state
                                                      impl/conform-test-definition)
                                                test-defs)]
-            (if-not (zero? (count test-defs))
-              (js/setTimeout
-                 (partial flow-step general-state test-definitions-w-state))
-              (done))))))
-
+     (if-not (zero? (count test-defs))
+       (js/setTimeout
+          (partial flow-step general-state test-definitions-w-state))
+       (done)))))

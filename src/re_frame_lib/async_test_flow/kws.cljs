@@ -42,7 +42,10 @@
   (spec/keys :opt-in [::test-timeout
                       ::test-started-at
                       ::spawn-timeout
-                      ::on-error]))
+                      ::on-error
+                      ::on-step
+                      ::on-success
+                      ::done]))
 
 (spec/def ::general-state-input
   (spec/merge ::main-options
