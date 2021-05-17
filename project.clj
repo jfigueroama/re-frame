@@ -1,4 +1,4 @@
-(defproject     jfigueroama/re-frame "lein-git-inject/version"
+(defproject     jfigueroama/re-frame "1.2.0-alpha1"
   :description  "A ClojureScript MVC-like Framework For Writing SPAs Using Reagent."
   :url          "https://github.com/jfigueroama/re-frame.git"
   :license      {:name "MIT"}
@@ -14,12 +14,7 @@
                  [net.cgrand/macrovich      "0.2.1"]
                  [org.clojure/tools.logging "1.1.0"]]
 
-  :plugins      [[day8/lein-git-inject "0.0.14"]
-                 [lein-shadow          "0.3.1"]]
-
-  :middleware   [leiningen.git-inject/middleware]
-
-  :git-inject {:version-pattern #"v(\d+\.\d+\.\d+.*)"}
+  :plugins      [[lein-shadow          "0.3.1"]]
 
   :profiles {:debug {:debug true}
              :dev   {:dependencies [[binaryage/devtools "1.0.3"]]
