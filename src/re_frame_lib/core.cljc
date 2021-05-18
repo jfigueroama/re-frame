@@ -7,12 +7,14 @@
     [re-frame-lib.fx               :as fx]
     [re-frame-lib.cofx             :as cofx]
     [re-frame-lib.router           :as router]
+    [re-frame-lib.settings         :as settings]
     [re-frame-lib.loggers          :as loggers]
     [re-frame-lib.registrar        :as registrar]
     [re-frame-lib.interceptor      :as interceptor]
     [re-frame-lib.std-interceptors :as std-interceptors :refer [db-handler->interceptor
                                                                 fx-handler->interceptor
                                                                 ctx-handler->interceptor]]
+    [re-frame-lib.utils            :as utils]
     [clojure.set               :as set]))
 
 
@@ -78,10 +80,6 @@
     {:pre [(state? state)]}
     (apply registrar/clear-handlers
            (concat [state kind] params))))
-
-(def inject-cofx cofx/inject-cofx)
-(def clear-cofx (clear-x cofx/kind)) ;; think unreg-cofx
-
 
 ;; -- Events ------------------------------------------------------------------
 
@@ -153,9 +151,9 @@
   "
   {:api-docs/heading "Event Handlers"}
   ([state id handler]
-   (reg-event-fx id nil handler))
+   (reg-event-fx state id nil handler))
   ([state id interceptors handler]
-   (events/register id [(cofx/inject-db state) (fx/do-fx state) (std-interceptors/inject-global-interceptors state) interceptors (fx-handler->interceptor handler)])))
+   (events/register state id [(cofx/inject-db state) (fx/do-fx state) (std-interceptors/inject-global-interceptors state) interceptors (fx-handler->interceptor handler)])))
 
 
 (defn reg-event-ctx
@@ -186,9 +184,9 @@
   "
   {:api-docs/heading "Event Handlers"}
   ([state id handler]
-   (reg-event-ctx id nil handler))
+   (reg-event-ctx state id nil handler))
   ([state id interceptors handler]
-   (events/register id [(cofx/inject-db state) (fx/do-fxstate ) (std-interceptors/inject-global-interceptors state) interceptors (ctx-handler->interceptor handler)])))
+   (events/register state id [(cofx/inject-db state) (fx/do-fx state) (std-interceptors/inject-global-interceptors state) interceptors (ctx-handler->interceptor handler)])))
 
 (def clear-event
   "Unregisters event handlers (presumably registered previously via the use of `reg-event-db` or `reg-event-fx`).
@@ -198,7 +196,6 @@
   When given one arg, assumed to be the `id` of a previously registered
   event handler, it will unregister the associated handler. Will produce a warning to
   console if it finds no matching registration."
-  {:api-docs/heading "Event Handlers"}
   (clear-x events/kind))
 
 ;; -- subscriptions -----------------------------------------------------------
@@ -436,7 +433,6 @@
   console if it finds no matching registration.
 
   NOTE: Depending on the usecase, it may be necessary to call `clear-subscription-cache!` afterwards"
-  {:api-docs/heading "Subscriptions"}
   (clear-x subs/kind))
 
 
@@ -459,7 +455,6 @@
   the subscriptions within those components won't have been cleaned up correctly. So this
   forces the issue.
   "
-  {:api-docs/heading "Subscriptions"}
   subs/clear-subscription-cache!)
 
 ;; -- effects -----------------------------------------------------------------
@@ -504,7 +499,6 @@
   effect handler, it will unregister the associated handler. Will produce a warning to
   console if it finds no matching registration.
   "
-  {:api-docs/heading "Effect Handlers"}
   (clear-x fx/kind))
 
 ;; -- coeffects ---------------------------------------------------------------
@@ -596,7 +590,6 @@
   When given one arg, assumed to be the `id` of a previously registered
   coeffect handler, it will unregister the associated handler. Will produce a warning to
   console if it finds no matching registration."
-  {:api-docs/heading "Coeffects"}
   (clear-x cofx/kind))
 
 ;; -- interceptors ------------------------------------------------------------
@@ -1110,7 +1103,7 @@
         :db
         (fn db-coeffects-handler
           [coeffects]
-          (assoc coeffects :db @(:app-db state)))) 
+          (assoc coeffects :db @(:app-db state))))
 
       ;; :dispatch-later
       ;;
@@ -1154,7 +1147,7 @@
             (doseq [[effect-key effect-value] (remove nil? seq-of-effects)]
               (when (= :db effect-key)
                 (console :warn "re-frame: \":fx\" effect should not contain a :db effect"))
-              (if-let [effect-fn (get-handler state kind effect-key false)]
+              (if-let [effect-fn (registrar/get-handler state fx/kind effect-key false)]
                 (effect-fn effect-value)
                 (console :warn "re-frame: in \":fx\" effect found " effect-key " which has no associated handler. Ignoring."))))))
 
@@ -1234,7 +1227,7 @@
   "Creates a new re-frame `state`. This is the one to use.
   Once created, you can create subscriptions and events handlers using the ->
   threading macro:
-  
+
   (defonce state
     (-> (new-state)
         subs/reg-some-subs
@@ -1246,9 +1239,10 @@
   []
   (let [raw-state (new-state-wo-event-queue)
         state     (add-state-defaults
-                     (assoc state
+                     (assoc raw-state
                             :event-queue
-                            (router/->EventQueue state :idle empty-queue {})))]
+                            (router/->EventQueue raw-state :idle empty-queue {})))]
     (interop/on-load #(swap! (:store state)
                              (fn [m] (assoc m :loaded? true))))
     state))
+

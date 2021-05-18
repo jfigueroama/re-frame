@@ -38,7 +38,7 @@
   {:pre [(state? state)]}
   (let [kind->id->handler (:kind->id->handler state)]
     (when debug-enabled?                                       ;; This is in a separate when so Closure DCE can run
-      (when (and (not (settings/loaded?)) (get-handler state kind id false))
+      (when (and (not (settings/loaded? state)) (get-handler state kind id false))
         (console :warn "re-frame: overwriting " (str kind) " handler for: " id)))   ;; allow it, but warn. Happens on figwheel reloads.
     (swap! kind->id->handler assoc-in [kind id] handler-fn)
     state))    ;; note: returns the just registered handler

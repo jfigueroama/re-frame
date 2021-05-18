@@ -1,4 +1,4 @@
-(ns re-frame.settings
+(ns re-frame-lib.settings
   (:require
     [re-frame-lib.base :refer [state?]]
     [re-frame-lib.interop :as interop]
@@ -47,10 +47,10 @@
   (:global-interceptors @store))
 
 (defn clear-global-interceptors
-  ([{:keys [store]}]
+  ([{:keys [store] :as state}]
    {:pre [(state? state)]}
    (swap! store assoc :global-interceptors interop/empty-queue))
-  ([{:keys [store]} id]
+  ([{:keys [store] :as state} id]
    {:pre [(state? state)]}
    (swap! store update :global-interceptors
           (fn [global-interceptors]
