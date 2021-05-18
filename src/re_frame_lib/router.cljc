@@ -106,13 +106,13 @@
   ;; register a callback function which will be called after each event is processed
   (add-post-event-callback [_ id callback-fn]
     (if (contains? post-event-callback-fns id)
-      (console :warn "re-frame: overwriting existing post event call back with id:" id))
+      (console :warn "re-frame: overwriting existing post event call back with id: " id))
     (->> (assoc post-event-callback-fns id callback-fn)
          (set! post-event-callback-fns)))
 
   (remove-post-event-callback [_ id]
     (if-not (contains? post-event-callback-fns id)
-      (console :warn "re-frame: could not remove post event call back with id:" id)
+      (console :warn "re-frame: could not remove post event call back with id: " id)
       (->> (dissoc post-event-callback-fns id)
            (set! post-event-callback-fns))))
 
@@ -233,40 +233,16 @@
 ;;
 
 (defn dispatch
-  "Enqueue `event` for processing by event handling machinery.
-
-  `event` is a vector of length >= 1. The 1st element identifies the kind of event.
-
-  Note: the event handler is not run immediately - it is not run
-  synchronously. It will likely be run 'very soon', although it may be
-  added to the end of a FIFO queue which already contain events.
-
-  Usage:
-  (dispatch [:order-pizza {:supreme 2 :meatlovers 1 :veg 1})"
   [state event]
   {:pre [(state? state)]}
   (let [event-queue (:event-queue state)]
     (if (nil? event)
-      (throw (ex-info (str "re-frame: you called \"dispatch\" "
-                           "without an event vector.")
-                      {}))
+      (throw (ex-info "re-frame: you called \"dispatch\" without an event vector." {}))
       (push event-queue event))
     state)) ;; Ensure nil or state return. See https://github.com/Day8/re-frame/wiki/Beware-Returning-False
 
 
 (defn dispatch-sync
-  "Synchronously (immediately) process `event`. Do not queue.
-
-  Generally, don't use this. Instead use `dispatch`. It is an error
-  to use `dispatch-sync` within an event handler.
-
-  Useful when any delay in processing is a problem:
-  1. the `:on-change` handler of a text field where we are expecting fast typing.
-  2  when initialising your app - see 'main' in todomvc examples
-  3. in a unit test where we don't want the action 'later'
-
-  Usage:
-  (dispatch-sync [:sing :falsetto 634])"
   [state event-v]
   {:pre [(state? state)]}
   (let [event-queue (:event-queue state)]

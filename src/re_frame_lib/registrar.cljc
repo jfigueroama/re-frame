@@ -4,15 +4,12 @@
   central registry of such associations."
   (:require  [re-frame-lib.base :refer [state?]]
              [re-frame-lib.interop :refer [debug-enabled?]]
-             [re-frame-lib.loggers :refer [console]]))
+             [re-frame-lib.loggers :refer [console]]
+             [re-frame-lib.settings :as settings]))
 
 
 ;; kinds of handlers
 (def kinds #{:event :fx :cofx :sub})
-
-;; This atom contains a register of all handlers.
-;; Contains a two layer map, keyed first by `kind` (of handler), and then `id` of handler.
-;; Leaf nodes are handlers.
 
 (defn get-handler
   ([state kind]
@@ -41,10 +38,10 @@
   {:pre [(state? state)]}
   (let [kind->id->handler (:kind->id->handler state)]
     (when debug-enabled?                                       ;; This is in a separate when so Closure DCE can run
-      (when (get-handler state kind id false)
-        (console :warn "re-frame: overwriting" (str kind) "handler for:" id)))   ;; allow it, but warn. Happens on figwheel reloads.
+      (when (and (not (settings/loaded?)) (get-handler state kind id false))
+        (console :warn "re-frame: overwriting " (str kind) " handler for: " id)))   ;; allow it, but warn. Happens on figwheel reloads.
     (swap! kind->id->handler assoc-in [kind id] handler-fn)
-    state))          ;; note: returns the state
+    state))    ;; note: returns the just registered handler
 
 
 (defn clear-handlers
@@ -67,6 +64,6 @@
      (assert (kinds kind))
      (if (get-handler state kind id)
        (swap! kind->id->handler update-in [kind] dissoc id)
-       (console :warn "re-frame: can't clear" (str kind) "handler for" (str id ". Handler not found.")))
+       (console :warn "re-frame: can't clear " (str kind) " handler for " (str id ". Handler not found.")))
      state)))
 
