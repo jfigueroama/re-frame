@@ -15,7 +15,6 @@
 
 
 (defn ->interceptor
-  "Create an interceptor from named arguments"
   [& {:as m :keys [id before after]}]
   (when debug-enabled?
     (if-let [unknown-keys (seq (set/difference
@@ -86,7 +85,7 @@
   through all interceptor functions.
 
   Generally speaking, an interceptor's `:before` function will (if present)
-  add to a `context's` `:coeffects`, while it's `:after` function
+  add to a `context's` `:coeffects`, while its `:after` function
   will modify the `context`'s `:effects`.  Very approximately.
 
   But because all interceptor functions are given `context`, and can
@@ -107,11 +106,6 @@
 
 
 (defn enqueue
-  "Add a collection of `interceptors` to the end of `context's` execution `:queue`.
-  Returns the updated `context`.
-
-  In an advanced case, this function could allow an interceptor to add new
-  interceptors to the `:queue` of a context."
   [context interceptors]
   (update context :queue
           (fnil into empty-queue)
@@ -123,6 +117,9 @@
   ([event interceptors]
    (-> {}
        (assoc-coeffect :event event)
+       ;; Some interceptors, like `trim-v` and `unwrap`, alter event so capture
+       ;; the original for use cases such as tracing.
+       (assoc-coeffect :original-event event)
        (enqueue interceptors)))
   ([event interceptors db]      ;; only used in tests, probably a hack, remove ?  XXX
    (-> (context event interceptors)
@@ -163,7 +160,7 @@
      {:coeffects {:event [:a-query-id :some-param]
                   :db    <original contents of app-db>}
       :effects   {:db    <new value for app-db>
-                  :dispatch  [:an-event-id :param1]}
+                  :fx  [:dispatch [:an-event-id :param1]]}
       :queue     <a collection of further interceptors>
       :stack     <a collection of interceptors already walked>}
 

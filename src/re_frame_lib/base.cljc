@@ -10,21 +10,23 @@
   "Keys that compose the state hash map. It can be more."
   [:app-db :query->reaction :kind->id->handler  ; storage
    :event-queue :handling                       ; events
+   :store                                       ; settings
    :trace-id :trace-enabled? :trace-cbs :trace-traces])
 
 (defn state-for-testing
   "This state is only for testing the implementation of re-frame-lib.
   For normal usage you should use re-frame-lib.core/new-state."
   []
-  {:app-db (atom {})
-   :query->reaction (atom {})
+  {:app-db            (atom {})
+   :query->reaction   (atom {})
    :kind->id->handler (atom {})
-   :event-queue nil
-   :handling (atom nil)
-   :trace-id (atom 0)
-   :trace-enabled? false
-   :trace-cbs (atom {})
-   :trace-traces (atom [])})
+   :event-queue       nil
+   :handling          (atom nil)
+   :store             (atom {})
+   :trace-id          (atom 0)
+   :trace-enabled?    false
+   :trace-cbs         (atom {})
+   :trace-traces      (atom [])})
    
 
 (defn state?

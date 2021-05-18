@@ -1,4 +1,4 @@
-(defproject     jfigueroama/re-frame "1.2.0-alpha1"
+(defproject     jfigueroama/re-frame "1.2.0"
   :description  "A ClojureScript MVC-like Framework For Writing SPAs Using Reagent."
   :url          "https://github.com/jfigueroama/re-frame.git"
   :license      {:name "MIT"}
@@ -12,7 +12,9 @@
                  [thheller/shadow-cljs      "2.12.1"   :scope "provided"]
                  [reagent                   "1.0.0"]
                  [net.cgrand/macrovich      "0.2.1"]
-                 [org.clojure/tools.logging "1.1.0"]]
+                 [org.clojure/tools.logging "1.1.0"]
+                 [com.nedap.staffing-solutions/speced.def "2.0.0"]
+                 [com.nedap.staffing-solutions/utils.spec.predicates "1.1.0"]]
 
   :plugins      [[lein-shadow          "0.3.1"]]
 
