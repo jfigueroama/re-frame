@@ -2,6 +2,12 @@
 
 I wanted to use devcards with re-frame. It could be useful for other people too.
 
+This fork allows to run multiple instances of the same application in the same window. It helps if you want to run a bunch of tests and functional tests showing the whole application in different containers in the same window where your test are being executed. For cases like that it just makes stuff simpler.
+
+Check `examples/todomvc-with-state` for a running example of the `todomvc` running two applications at the same time.
+
+Many thanks to all the contributors that keeps our dependencies up and running!
+
 [![Clojars Project](https://img.shields.io/clojars/v/jfigueroama/re-frame.svg)](https://clojars.org/jfigueroama/re-frame)
 
 ```clojureScript
