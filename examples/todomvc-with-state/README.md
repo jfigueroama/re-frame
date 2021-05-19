@@ -1,4 +1,4 @@
-# TodoMVC done with re-frame
+# TodoMVC done with stateful re-frame
 
 An stateful [re-frame-lib](https://github.com/jfigueroama/re-frame) implementation of [TodoMVC](http://todomvc.com/).
 
@@ -15,18 +15,18 @@ really required to get the job done. So lean and minimal is no longer a goal.
 
 2. Get the re-frame repo from GitHub:
    ```sh
-   git clone https://github.com/day8/re-frame.git
+   git clone https://github.com/jfigueroama/re-frame.git
    ```
 
 3. cd to the right example directory:
    ```sh
-   cd re-frame/examples/todomvc
+   cd re-frame/examples/todomvc-with-state
    ```
 
 4. Kick off a clean build (compile the app and start up shadow-cljs hot-reloading)
    ```sh
    npm install
-   npm run watch
+   npm run watch-browser-test
    ```
 
 5. Wait for the compile in step 4 to finish. At a minumum, 15 seconds. But, if you are new to ClojureScript and some downloads are needed (caches are empty), it might take a minute or two. Eventually you should see `[:client] Build Completed (...)`
@@ -34,7 +34,10 @@ really required to get the job done. So lean and minimal is no longer a goal.
 6. Wait for step 5 to do the compile, and then open in UI in the broswer:
    ```sh
    open http://localhost:8280
+   open http://localhost:8280/test.html
    ```
+
+Enjoy full hot reloading in the main UI and functional tests too!
 
 ## Exploring The Code
 
@@ -56,6 +59,15 @@ src
 ├── subs.cljs         <--- subscription handlers  (query layer)
 ├── views.cljs        <--- reagent  components (view layer)
 └── events.cljs       <--- event handlers (control/update layer)
+```
+
+In `test` you have:
+```
+test
+├── functional/       <--- functional tests
+├── unit/             <--- unit tests
+├── helpers.cljs      <--- some helpers for testing show 
+└── test_runner.cljs  <--- main test runner for the browser tests (all of them)
 ```
 
 For the most immediate feedback, edit some of the hiccup in the `views.cljs` file. When 

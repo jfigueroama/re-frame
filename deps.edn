@@ -7,4 +7,6 @@
                                    :scope "provided"}
         reagent                   {:mvn/version "1.0.0"}
         net.cgrand/macrovich      {:mvn/version "0.2.1"}
-        org.clojure/tools.logging {:mvn/version "1.1.0"}}}
+        org.clojure/tools.logging {:mvn/version "1.1.0"}
+        com.nedap.staffing-solutions/speced.def {:mvn/version "2.0.0"}
+        com.nedap.staffing-solutions/utils.spec.predicates {:mvn/version "1.1.0"}}}
