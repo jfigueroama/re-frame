@@ -52,10 +52,9 @@
 
 
 (defn task-list
-  [state]
+  [{:keys [ls-key]  :as state}]
   (let [visible-todos @(subscribe state [:visible-todos])
         all-complete? @(subscribe state [:all-complete?])]
-      (js/console.log "task-list" (clj->js visible-todos) (clj->js all-complete?))
       [:section#main
         [:input#toggle-all
           {:type "checkbox"
@@ -102,7 +101,6 @@
 
 (defn todo-app
   [state]
-  (js/console.log (:ls-key state)  (clj->js @(:app-db state)))
   [:<>
    [:section#todoapp
     [task-entry state]

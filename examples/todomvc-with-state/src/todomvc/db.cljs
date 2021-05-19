@@ -55,12 +55,15 @@
 ;; But the challenge stipulates to NOT load the setting for the "showing"
 ;; filter. Just the todos.
 ;;
+;; Adapted to functional test the app using an atom as storage
 
 (defn todos->local-store
   "Puts todos into localStorage"
-  [{:keys [ls-key] :as state}
+  [{:keys [ls-key fake-local-storage] :as state}
    todos]
-  (.setItem js/localStorage ls-key (str todos)))     ;; sorted-map written as an EDN map
+  (if fake-local-storage
+    (swap! fake-local-storage assoc ls-key todos)
+    (.setItem js/localStorage ls-key (str todos))))     ;; sorted-map written as an EDN map
 
 
 ;; -- cofx Registrations  -----------------------------------------------------
@@ -77,14 +80,16 @@
     ;; EDN map -> map
 
 (defn register
- [{:keys [ls-key] :as state}]
+ [{:keys [ls-key fake-local-storage] :as state}]
  (re-frame/reg-cofx
    state
    :local-store-todos
    (fn [cofx _]
        ;; put the localstore todos into the coeffect under :local-store-todos
        (assoc cofx :local-store-todos
-              ;; read in todos from localstore, and process into a sorted map
+              ;; read in todos from localstore or mock, and process into a sorted map
               (into (sorted-map)
-                    (some->> (.getItem js/localStorage ls-key)
-                             (cljs.reader/read-string)))))))
+                    (if fake-local-storage
+                      (get fake-local-storage ls-key)
+                      (some->> (.getItem js/localStorage ls-key)
+                               (cljs.reader/read-string))))))))

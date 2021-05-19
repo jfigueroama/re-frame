@@ -12,18 +12,19 @@
            [goog.history EventType]))
 
 (defn state-for
-  [app-id]
+  [app-id extras]
   (-> (new-state)
       (assoc :ls-key (str "todos-reframe-" app-id))
+      (merge extras)
       (todomvc.db/register)
       (todomvc.subs/register)
       (todomvc.events/register)))
 
 (defonce astateA
-  (atom (state-for "appA")))
+  (atom (state-for "appA" {})))
 
 (defonce astateB
-         (atom (state-for "appB")))
+         (atom (state-for "appB" {})))
 
 ;; -- Debugging aids ----------------------------------------------------------
 (enable-console-print!)   ;; so that println writes to `console.log`
@@ -70,9 +71,10 @@
   ;; The `:dev/after-load` metadata causes this function to be called
   ;; after shadow-cljs hot-reloads code. We force a UI update by clearing
   ;; the Reframe subscription cache.
-  (rf/clear-subscription-cache! @astateA)
-  (rf/clear-subscription-cache! @astateB)
-  (render astateA astateB))
+  (when (.getElementById js/document "appA")
+    (rf/clear-subscription-cache! @astateA)
+    (rf/clear-subscription-cache! @astateB)
+    (render astateA astateB)))
 
 (defn ^:export main
   []
